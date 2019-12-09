@@ -36,6 +36,8 @@ from stix2.utils import get_type_from_id
 
 from pyxsb import *
 
+from genTransMatrix import *
+
 
 sys.path.append('..')
 
@@ -43,8 +45,8 @@ sys.path.append('..')
 # MulVal Data Loading
 # BASE_DIR = '/opt/projects/diss/jupyter_nbs/mine'
 BASE_DIR = '/opt/projects/diss/py-mulval'
-DATA_DIR = 'data'
-WORKING_DIR = '/'.join((BASE_DIR, DATA_DIR, 'test_003'))
+DATA_DIR = '/'.join((BASE_DIR, 'data'))
+WORKING_DIR = '/'.join((DATA_DIR, 'test_003'))
 
 XSB_ARCH_DIR = '/opt/apps/xsb/XSB/config/x86_64-unknown-linux-gnu'
 
@@ -111,8 +113,26 @@ class attack_graph(object):
 
 class graph_gen(object):
 
-
     def __init__(self, *args, **kwargs):
+        """
+        Usage: graph_gen.sh [-r|--rule rulefile]
+                    [-a|--additional additional_rulefile]
+            [-c|--constraint constraint_file]
+            [-g|--goal goal]
+            [-d|--dynamic dynamic_file]
+            [-p]
+            [-s|--sat]
+            [-t|--t trace_option]
+            [-tr|--trim]
+            [-v|--visualize [--arclabel] [--reverse]]
+                    [--cvss]
+                [-h|--help]
+                [attack_graph_options]
+                input_file
+
+        :param args:
+        :param kwargs:
+        """
         super(graph_gen, self)
 
 
@@ -341,16 +361,28 @@ nfsMounted(workStation, '/usr/local/share', fileServer, '/export', read).
 
 # if __name__ == "__main__":
 def Main():
+    """
+    Demo to run default MulVal input.P from python
+
+    :return:
+    """
     mulval_args, attackgraph_args = parseFlags()
     logging.debug('Parsed mulval args: %s' % mulval_args)
     logging.debug('Parsed attack graph args:logPath %s' % attackgraph_args)
 
     setup_test_dir()
 
-    gg = graph_gen()
 
+    #####
+    ## graph_gen.sh
+    ####
+    gg = graph_gen()
     gg.graph_gen()
 
+
+    #####
+    ## attack_graph.cpp
+    ####
     ag = attack_graph()
 
     ag_text = ag.attack_graph().decode('UTF-8')
@@ -372,6 +404,32 @@ def Main():
     gg.writeFile(WORKING_DIR + '/VERTICES.CSV', verts)
 
     ag.render()
+
+    #####
+    ## genTransMatrix
+    ####
+    inputDir = WORKING_DIR
+    outfileName = 'input_outfile'
+    scriptsDir = DATA_DIR
+        # write transMatrix.csv
+        # matrixFileName = sys.argv[2] + '.csv'
+    matrixFileName = inputDir + '/' + outfileName + '.csv'
+    name =  outfileName
+
+    A = AttackGraph(inputDir=inputDir, scriptsDir=scriptsDir)
+    A.name = name
+
+    A.plot2(outfilename= name + '_001_orig.png')
+    tgraph = deepcopy(A)
+
+    # make transition matrix
+    # A.getANDnodes()
+    # A.getORnodes()
+    # A.getLEAFnodes()
+
+    tmatrix = A.getTransMatrix(tgraph, inputDir=inputDir, outfileName=outfileName)
+
+
 
 
 

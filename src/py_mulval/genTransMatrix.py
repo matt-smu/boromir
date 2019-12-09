@@ -2,6 +2,7 @@
 import os
 import re
 import sys
+import logging
 from collections import Set
 
 import yaml
@@ -46,34 +47,37 @@ class AttackGraph(nx.MultiDiGraph):
     """
 
     def __init__(self, data=None, name='', file=None, **kwargs):
-        self.data = read_dot(os.path.join(inputDir, AG_DOT))
-        super(AttackGraph, self).__init__(self.data)
-        # print(self.nodes())
+        # self.data = read_dot(os.path.join(inputDir, AG_DOT))
+
+        # logging.debug((self.nodes()))
 
 
         self.scriptsDir = '.' #os.cwd()
         if 'scriptsDir' in kwargs.keys():
             self.scriptsDir = kwargs['scriptsDir']
-            print('scriptsDir: ', self.scriptsDir)
+            logging.debug(('scriptsDir: ', self.scriptsDir))
 
         #self.inputDir = '.' #os.cwd()
         if 'inputDir' in kwargs.keys():
             self.inputDir = kwargs['inputDir']
-            print('inputDir: ', self.inputDir)
+            logging.debug(('inputDir: ', self.inputDir))
 
 
         with open(self.scriptsDir + '/' + SCORE_DICT) as f:
-            # print(f.readlines())
+            # logging.debug((f.readlines()))
             self.conf_override = yaml.safe_load(f)
-            # print('conf_overrides', self.conf_override)
+            # logging.debug(('conf_overrides', self.conf_override))
             self.coalesced_rules = self.conf_override['coalesce_rules']
-            # print('coalesced rules loaded: ', self.coalesced_rules)
+            # logging.debug(('coalesced rules loaded: ', self.coalesced_rules))
             self.exploit_rules = self.conf_override['exploit_rules']
             self.exploitDict = self.conf_override['exploitDict']
 
         self.origin = None
         self.target = None
         self.node_list = []
+
+        self.data = read_dot(os.path.join(self.inputDir, AG_DOT))
+        super(AttackGraph, self).__init__(self.data)
 
         # add fields not included in dot file
         self.__updateAG()
@@ -85,7 +89,7 @@ class AttackGraph(nx.MultiDiGraph):
     #     nodePos = graphviz_layout(self, prog='dot')
     #
     #     nodeShapes = set((aShape[1]["s"] for aShape in self.nodes(data=True)))
-    #     print(nodeShapes)
+    #     logging.debug((nodeShapes))
     #
     #     labels = self.nodes.keys()
     #     labels = None
@@ -132,7 +136,7 @@ class AttackGraph(nx.MultiDiGraph):
                 self.nodes[node]['color'] = 'green'
                 self.nodes[node]['s'] = 's'
             else:
-                print('Unknown node type: ', self.nodes[node]['shape'])
+                logging.debug(('Unknown node type: ', self.nodes[node]['shape']))
 
     def getPlotNodeLabels(self):
         labels = {}
@@ -146,11 +150,11 @@ class AttackGraph(nx.MultiDiGraph):
     def getCVSSscore(self, cveid):
         score = 'null'  # the score to return
         con = None
-        print('looking for cveid: ', cveid)
+        logging.debug(('looking for cveid: ', cveid))
 
         if cveid in self.exploitDict.keys():  # check user overrides first
             score = self.exploitDict[cveid]
-            # print('Matched hypothetical score ' + cveid + ' : ' + str(score))
+            # logging.debug(('Matched hypothetical score ' + cveid + ' : ' + str(score)))
         else:
             try:
                 con = MySQLdb.connect('localhost', 'nvd', 'nvd', 'nvd')
@@ -159,17 +163,17 @@ class AttackGraph(nx.MultiDiGraph):
                 res = cur.fetchone()  # the cveid or None it
                 if res:
                     score = res['score']
-                    print('Found cveid ' + cveid + ' with score: ' + str(score))
+                    logging.debug(('Found cveid ' + cveid + ' with score: ' + str(score)))
 
                 else:
-                    print('bad cveid (result unknown): setting CVSS to 1!!!**** [' + cveid + ']')
+                    logging.debug(('bad cveid (result unknown): setting CVSS to 1!!!**** [' + cveid + ']'))
                     score = 1
             except MySQLdb.Error as e:
-                print("Error %d: %s" % (e.args[0], e.args[1]))
+                logging.debug(("Error %d: %s" % (e.args[0], e.args[1])))
 
                 # @TODO exit when not testing (uncomment)
                 # sys.exit(1)
-                print('bad cveid (result unknown): setting CVSS to 1!!!**** [' + cveid + ']')
+                logging.debug(('bad cveid (result unknown): setting CVSS to 1!!!**** [' + cveid + ']'))
                 score = 1
             finally:
                 if con:
@@ -179,17 +183,17 @@ class AttackGraph(nx.MultiDiGraph):
 
     def getANDnodes(self):
         andNodes = [n for n, v in self.nodes(data=True) if v['type'] == 'AND']
-        # print(andNodes)
+        # logging.debug((andNodes))
         return andNodes
 
     def getORnodes(self):
         orNodes = [n for n, v in self.nodes(data=True) if v['type'] == 'OR']
-        print(orNodes)
+        logging.debug((orNodes))
         return orNodes
 
     def getLEAFnodes(self):
         leafNodes = [n for n, v in self.nodes(data=True) if v['type'] == 'LEAF']
-        print(leafNodes)
+        logging.debug((leafNodes))
         return leafNodes
 
     # def add_edge(self, u_for_edge, v_for_edge, key=None, **attr):
@@ -206,7 +210,7 @@ class AttackGraph(nx.MultiDiGraph):
     #         self._node[v] = self.node_attr_dict_factory()
     #     if key is None:
     #         key = self.new_edge_key(u, v)
-    #         # print('******MAKING KEY *****', u, v, key, attr)
+    #         # logging.debug(('******MAKING KEY *****', u, v, key, attr))
     #     if v in self._succ[u]:
     #         keydict = self._adj[u][v]
     #         datadict = keydict.get(key, self.edge_key_dict_factory())
@@ -228,19 +232,19 @@ class AttackGraph(nx.MultiDiGraph):
         andNodes = self.getANDnodes()
         for andNode in andNodes:
             # set if we are explicit coalesce rule
-            # print('Checking: ', self.nodes[andNode]['label'], self.coalesced_rules)
+            # logging.debug(('Checking: ', self.nodes[andNode]['label'], self.coalesced_rules))
             # if any(cr in self.nodes[andNode]['label'] for cr in self.coalesced_rules):
             self.nodes[andNode]['toCoalesce'] = True
-            print('setting node to coalesce: ', self.nodes[andNode])
+            logging.debug(('setting node to coalesce: ', self.nodes[andNode]))
 
             # set if there is a general exploit_rule score
             if any(xr in self.nodes[andNode]['label'] for xr in self.exploit_rules.keys()):
                 self.nodes[andNode]['toCoalesce'] = False
-                # print('setting node to default exploit score: ', self.nodes[andNode])
+                # logging.debug(('setting node to default exploit score: ', self.nodes[andNode]))
                 for xr in self.exploit_rules.keys():
                     if xr in self.nodes[andNode]['label']:
                         self.nodes[andNode]['exploit_rule_score'] = self.exploit_rules[xr]
-                        # print('setting node to default exploit score: ', self.nodes[andNode])
+                        # logging.debug(('setting node to default exploit score: ', self.nodes[andNode]))
 
                 # look for cvss score in leafs
                 leafPreds = [n for n in self.predecessors(andNode) if self.nodes[n]['type'] == 'LEAF']
@@ -248,21 +252,21 @@ class AttackGraph(nx.MultiDiGraph):
                 for p in leafPreds:
                     matchObj = re.match(r'.*:vulExists\((.*),(.*),(.*),(.*),(.*)\):.*', self.nodes[p]['label'],
                                         re.M | re.I)
-                    # print('looking for cve id in: ', self.nodes[p]['label'], matchObj)
+                    # logging.debug(('looking for cve id in: ', self.nodes[p]['label'], matchObj))
                     # assuming only 1 vuln per AND...
                     if matchObj:
                         mycveid = matchObj.group(2).strip('\'')
-                        # print('finding score for cveid: ', mycveid)
+                        # logging.debug(('finding score for cveid: ', mycveid))
                         score = self.getCVSSscore(mycveid)
                         # self.nodes[andNode]['scores'].append(self.nodes[p]['exploit_rule_score'])
 
 
                 if score:
-                    print('score found, overwriting default for node: ', score,
-                          self.nodes[andNode]['exploit_rule_score'], andNode)
+                    logging.debug(('score found, overwriting default for node: ', score,
+                          self.nodes[andNode]['exploit_rule_score'], andNode))
                     self.nodes[andNode]['exploit_rule_score'] = score
                 else:
-                    print('no score found, preserving default', self.nodes[andNode])
+                    logging.debug(('no score found, preserving default', self.nodes[andNode]))
 
                 #  set outbound edge scores here
                 o_edges = [((u, v, k), e) for u, v, k, e in self.out_edges(andNode, keys=True, data=True)]
@@ -272,51 +276,51 @@ class AttackGraph(nx.MultiDiGraph):
 
     def scoreANDs(self):
         andNodes = self.getANDnodes()
-        print('scoreANDs remaining AND nodes: ', andNodes)
+        logging.debug(('scoreANDs remaining AND nodes: ', andNodes))
         for a in andNodes:
-            print(self.nodes[a])
+            logging.debug((self.nodes[a]))
             i_edges = [((u, v, k), e) for u, v, k, e in self.in_edges(a, keys=True, data=True)]
             o_edges = [((u, v, k), e) for u, v, k, e in self.out_edges(a, keys=True, data=True)]
-            print('a in out: ', a, i_edges, o_edges)
+            logging.debug(('a in out: ', a, i_edges, o_edges))
             # for (u1, v1), (u2, v2) in zip(i_edges, o_edges):
             if not i_edges or not o_edges:  # we're at root
                 if not i_edges and not o_edges:
-                    print('scoreANDs !!!!!!!!!! Isolated Node !!!!!!!!!!!!!!')
+                    logging.debug(('scoreANDs !!!!!!!!!! Isolated Node !!!!!!!!!!!!!!'))
                 if not i_edges:
                     for ((u2, v2, k2), e2) in o_edges:
-                        print('u2, v2, k2, e2: ', u2, v2, k2, e2)
+                        logging.debug(('u2, v2, k2, e2: ', u2, v2, k2, e2))
                         self.nodes[v2]['scores'].append(self.nodes[a]['exploit_rule_score'])
-                        print('added score to child OR node: ', self.nodes[v2])
-                        # print('making new edge: ', (u1, v2))
+                        logging.debug(('added score to child OR node: ', self.nodes[v2]))
+                        # logging.debug(('making new edge: ', (u1, v2)))
                         self.remove_edge(u2, v2, k2)
                         o_edges.remove(((u2, v2, k2), e2))
                 if not o_edges:
                     for ((u1, v1, k1), e1) in i_edges:
-                        print('u1, v1, k1, e1: ', u1, v1, k1, e1)
+                        logging.debug(('u1, v1, k1, e1: ', u1, v1, k1, e1))
                         self.remove_edge(u1, v1, k1)
                         i_edges.remove(((u1, v1, k1), e1))
 
             else:
                 for ((u1, v1, k1), e1) in i_edges:
-                    print('scoreANDs u1, v1, k1, e1: ', u1, v1, k1, e1)
+                    logging.debug(('scoreANDs u1, v1, k1, e1: ', u1, v1, k1, e1))
                     for ((u2, v2, k2), e2) in o_edges:
-                        print('u2, v2, k2, e2: ', u2, v2, k2, e2)
+                        logging.debug(('u2, v2, k2, e2: ', u2, v2, k2, e2))
 
                         if self.nodes[v2]['type'] != 'OR':
-                            print('not an OR node... something bad happened...')
+                            logging.debug(('not an OR node... something bad happened...'))
 
                         self.nodes[v2]['scores'].append(self.nodes[a]['exploit_rule_score'])
-                        print('added score to child OR node: ', self.nodes[v2])
-                        # print('making new edge: ', (u1, v2))
+                        logging.debug(('added score to child OR node: ', self.nodes[v2]))
+                        # logging.debug(('making new edge: ', (u1, v2)))
                         if not v1:  # we're a root
-                            # print('Were at root, no u1 v2 edge: ', (u1, v2))
+                            # logging.debug(('Were at root, no u1 v2 edge: ', (u1, v2)))
                             # self.add_edge(u1, v2)
                             # self.remove_edge(u1, v1)
                             # i_edges.remove((u1, v1))
                             self.remove_edge(u2, v2, k2)
                             o_edges.remove(((u2, v2, k2), e2))
                         elif not u2:  # we're a sink
-                            # print('Were at root, no u1 v2 edge: ', (u1, v2))
+                            # logging.debug(('Were at root, no u1 v2 edge: ', (u1, v2)))
                             # self.add_edge(u1, v2)
                             # self.remove_edge(u1, v1)
                             # i_edges.remove((u1, v1))
@@ -324,19 +328,19 @@ class AttackGraph(nx.MultiDiGraph):
                             o_edges.remove(((u1, v1), e1))
                         elif v1 == u2:
                             # k = self.add_edge(u1, v2)
-                            # print('making new edge: ', (u1, v2, k))
+                            # logging.debug(('making new edge: ', (u1, v2, k)))
                             #
                             k = self.add_edge(u1, v2)
                             if e1: self[u1][v2][k].update(e1)
                             if e2: self[u1][v2][k].update(e2)
-                            print('making new edge: ', (u1, v2, k, self[u1][v2][k]))
+                            logging.debug(('making new edge: ', (u1, v2, k, self[u1][v2][k])))
 
                             self.remove_edge(u1, v1, k1)
                             i_edges.remove(((u1, v1, k1), e1))
                             self.remove_edge(u2, v2, k2)
                             o_edges.remove(((u2, v2, k2), e2))
                         else:
-                            print('ScoreANDs***** I Shouldnt be here *********')
+                            logging.debug(('ScoreANDs***** I Shouldnt be here *********'))
                         # self.remove_node(a)
 
     def merge_two_dicts(x, y):
@@ -349,35 +353,35 @@ class AttackGraph(nx.MultiDiGraph):
 
     def coalesceANDnodes(self):
         andNodes = [n for n in self.nodes() if self.nodes[n]['type'] == 'AND' and self.nodes[n]['toCoalesce']]
-        print('andNodes to coalesce: ', andNodes)
+        logging.debug(('andNodes to coalesce: ', andNodes))
 
         for a in andNodes:
             i_edges = [((u, v, k), e) for u, v, k, e in self.in_edges(a, keys=True, data=True)]
             o_edges = [((u, v, k), e) for u, v, k, e in self.out_edges(a, keys=True, data=True)]
-            print('a in out: ', a, i_edges, o_edges)
+            logging.debug(('a in out: ', a, i_edges, o_edges))
             # for (u1, v1), (u2, v2) in zip(i_edges, o_edges):
             if not i_edges or not o_edges:  # we're at root
                 if not i_edges and not o_edges:
-                    print('coalesceANDnodes !!!!!!!!!! Isolated Node !!!!!!!!!!!!!!')
+                    logging.debug(('coalesceANDnodes !!!!!!!!!! Isolated Node !!!!!!!!!!!!!!'))
                 if not i_edges:
                     for ((u2, v2, k2), e2) in o_edges:
-                        print('u2, v2, k2, e2: ', u2, v2, k2, e2)
+                        logging.debug(('u2, v2, k2, e2: ', u2, v2, k2, e2))
                         self.remove_edge(u2, v2, k2)
                         o_edges.remove(((u2, v2, k2), e2))
                 if not o_edges:
                     for ((u1, v1, k1), e1) in i_edges:
-                        print('u1, v1, k1, e1: ', u1, v1, k1, e1)
+                        logging.debug(('u1, v1, k1, e1: ', u1, v1, k1, e1))
                         self.remove_edge(u1, v1, k1)
                         i_edges.remove(((u1, v1, k1), e1))
 
             else:
                 for ((u1, v1, k1), e1) in i_edges:
-                    print('u1, v1, k1, e1: ', u1, v1, k1, e1)
+                    logging.debug(('u1, v1, k1, e1: ', u1, v1, k1, e1))
                     for ((u2, v2, k2), e2) in o_edges:
-                        print('u2, v2, k2, e2: ', u2, v2, k2, e2)
+                        logging.debug(('u2, v2, k2, e2: ', u2, v2, k2, e2))
                         if not u1:  # we're a root
-                            # print('making new edge: ', (u1, v2))
-                            print('coalesceAND - couldnt find v1 - are we a root?', v1)
+                            # logging.debug(('making new edge: ', (u1, v2)))
+                            logging.debug(('coalesceAND - couldnt find v1 - are we a root?', v1))
                             # self.add_edge(u1, v2)
                             # self.remove_edge(u1, v1, k1, *e1)
                             # i_edges.remove(((u1, v1, k1), e1))
@@ -386,7 +390,7 @@ class AttackGraph(nx.MultiDiGraph):
 
                         elif not v2:  # we're a sink
                             # self.add_edge(u1, v2)
-                            print('coalesceAND - couldnt find u1 - are we a sink?', u2, v2)
+                            logging.debug(('coalesceAND - couldnt find u1 - are we a sink?', u2, v2))
                             self.remove_edge(u1, v1, k1)
                             i_edges.remove(((u1, v1, k1), e1))
 
@@ -395,71 +399,71 @@ class AttackGraph(nx.MultiDiGraph):
                             k = self.add_edge(u1, v2)
                             if e1: self[u1][v2][k].update(e1)
                             if e2: self[u1][v2][k].update(e2)
-                            print('making new edge: ', (u1, v2, k, self[u1][v2][k]))
+                            logging.debug(('making new edge: ', (u1, v2, k, self[u1][v2][k])))
 
                             self.remove_edge(u1, v1, k1)
                             i_edges.remove(((u1, v1, k1), e1))
                             self.remove_edge(u2, v2, k2)
                             o_edges.remove(((u2, v2, k2), e2))
-                print('i+o edges: ', i_edges, o_edges, i_edges + o_edges)
+                logging.debug(('i+o edges: ', i_edges, o_edges, i_edges + o_edges))
 
     def coalesceORnodes(self):
         orNodes = [n for n in self.nodes() if self.nodes[n]['type'] == 'OR' and len(self.nodes[n]['scores']) == 0]
-        print('Found ornodes ot coalesce: ', orNodes)
+        logging.debug(('Found ornodes ot coalesce: ', orNodes))
         loop_count = 1
         edgeTrash = set()
         while len(orNodes) > 0:
-            print('starting loop : ', loop_count)
-            print('known OR nodes: ', self.getORnodes())
-            print('myOR nodes: ', orNodes)
+            logging.debug(('starting loop : ', loop_count))
+            logging.debug(('known OR nodes: ', self.getORnodes()))
+            logging.debug(('myOR nodes: ', orNodes))
             o = orNodes[0]
             # for o in orNodes:
-            print(self.nodes[o])
+            logging.debug((self.nodes[o]))
 
             i_edges = [((u, v, k), e) for u, v, k, e in self.in_edges(o, keys=True, data=True)]
             o_edges = [((u, v, k), e) for u, v, k, e in self.out_edges(o, keys=True, data=True)]
-            print('coalesceORnodes o in V out: ', o, i_edges, o_edges)
+            logging.debug(('coalesceORnodes o in V out: ', o, i_edges, o_edges))
 
             edgeTrash = set()
 
             if not i_edges or not o_edges:  # we're at root or sink
                 if not i_edges and not o_edges:
-                    print('coalesceORnodes !!!!!!!!!! Isolated Node !!!!!!!!!!!!!!')
+                    logging.debug(('coalesceORnodes !!!!!!!!!! Isolated Node !!!!!!!!!!!!!!'))
                 elif not i_edges:  # root
                     for ((u2, v2, k2), e2) in o_edges:
-                        print('iedges: ', i_edges)
-                        print('o, u2, v2, k2, e2: ', o, u2, v2, k2, e2)
+                        logging.debug(('iedges: ', i_edges))
+                        logging.debug(('o, u2, v2, k2, e2: ', o, u2, v2, k2, e2))
                         self.remove_edge(u2, v2, k2)
                         o_edges.remove(((u2, v2, k2), e2))
                         edgeTrash.add((u2, v2, k2))
-                        print('edgeTrash: ', edgeTrash)
+                        logging.debug(('edgeTrash: ', edgeTrash))
                         # self.remove_nodes_from(list(nx.isolates(self)))
                         # i_edges = [(u, v) for u, v, e in self.in_edges(o, keys=True, data=True)]
                         # o_edges = [(u, v) for u, v, e in self.out_edges(o, keys=True, data=True)]
                 elif not o_edges:  # sink
                     for ((u1, v1, k1), e1) in i_edges:
-                        print('oedges: ', o_edges)
-                        print('u1, v1 , k, e1: ', u1, v1, k1, e1)
+                        logging.debug(('oedges: ', o_edges))
+                        logging.debug(('u1, v1 , k, e1: ', u1, v1, k1, e1))
                         self.remove_edge(u1, v1, k1)
                         i_edges.remove(((u1, v1, k1), e1))
                         # self.remove_nodes_from(list(nx.isolates(self)))
                         # i_edges = [(u, v) for u, v, e in self.in_edges(o, keys=True, data=True)]
             else:
                 for ((u1, v1, k1), e1) in i_edges:
-                    print('u1, v1, k,  e1: ', u1, v1, k1, *e1)
+                    logging.debug(('u1, v1, k,  e1: ', u1, v1, k1, *e1))
                     for ((u2, v2, k2), e2) in o_edges:
-                        print('u2, v2, k2, e2: ', u2, v2, k2, e2)
+                        logging.debug(('u2, v2, k2, e2: ', u2, v2, k2, e2))
                         if u1 and v2:  # all good
                             # k = self.add_edge(u1, v2)
-                            # print('coalesceORnodes making new edge: ', (u1, v2, k), e1)
+                            # logging.debug(('coalesceORnodes making new edge: ', (u1, v2, k), e1))
                             #
                             k = self.add_edge(u1, v2)
                             if e1: self[u1][v2][k].update(e1)
                             if e2: self[u1][v2][k].update(e2)
-                            print('making new edge: ', (u1, v2, k, self[u1][v2][k]))
+                            logging.debug(('making new edge: ', (u1, v2, k, self[u1][v2][k])))
 
                             edgeTrash.add((u1, v1, k1))
-                            print('edgeTrash: ', edgeTrash)
+                            logging.debug(('edgeTrash: ', edgeTrash))
                             # self.remove_edge(u1, v1, k1, *e1)
                             # i_edges.remove(((u1, v1, k1), e1))
                             # self.remove_edge(u2, v2, k2, *e2)
@@ -467,25 +471,25 @@ class AttackGraph(nx.MultiDiGraph):
 
                         if not u1:  # we're a root
                             edgeTrash.add(((u2, v2, k2), e2))
-                            print('edgeTrash: ', edgeTrash)
+                            logging.debug(('edgeTrash: ', edgeTrash))
                             # self.remove_edge(u2, v2, k2, *e2)
                             # o_edges.remove(((u2, v2, k2), e2))
-                            print('Root - nothing above to remove')
+                            logging.debug(('Root - nothing above to remove'))
                         elif not v2:  # we're a sink
                             edgeTrash.add(((u1, v1, k1), e1))
-                            print('Take out the trash: ', edgeTrash)
+                            logging.debug(('Take out the trash: ', edgeTrash))
                             # self.remove_edge(u1, v1, k1, *e1)
                             # i_edges.remove(((u1, v1, k1), e1))
-                            print('Sink - nothing below to remove')
+                            logging.debug(('Sink - nothing below to remove'))
 
-                print('coalesceORnodes i+o edges: ', i_edges, o_edges, i_edges + o_edges)
+                logging.debug(('coalesceORnodes i+o edges: ', i_edges, o_edges, i_edges + o_edges))
             self.remove_nodes_from(list(nx.isolates(self)))
             orNodes = [n for n in self.nodes() if self.nodes[n]['type'] == 'OR' and len(self.nodes[n]['scores']) == 0]
-            print('coalesceORnodes ', self.getORnodes())
-            print(orNodes)
+            logging.debug(('coalesceORnodes ', self.getORnodes()))
+            logging.debug((orNodes))
             for o in orNodes:
-                print(self.nodes[o])
-            self.plot2(outfilename=name + '_005_0_coalesceOrs.' + str(loop_count) + '.png')
+                logging.debug((self.nodes[o]))
+            self.plot2(outfilename=self.name + '_005_0_coalesceOrs.' + str(loop_count) + '.png')
 
             self.remove_edges_from(edgeTrash)
             edgeTrash.clear()
@@ -496,48 +500,48 @@ class AttackGraph(nx.MultiDiGraph):
         self.remove_nodes_from(leafs)
 
     # def setOrigin(self):
-    #     print('tgraph root node: ', tgraph.origin)
+    #     logging.debug(('tgraph root node: ', tgraph.origin))
     #     if not tgraph.origin:
     #         roots = set()
     #         for n in self.nodes():
-    #             print('node n has preds: ', n, list(self.predecessors(n)))
-    #             print('node n has inbound edges, in_degree:  ', n, self.in_degree(n))
+    #             logging.debug(('node n has preds: ', n, list(self.predecessors(n))))
+    #             logging.debug(('node n has inbound edges, in_degree:  ', n, self.in_degree(n)))
     #             if self.in_degree(n) == 0:
     #                 roots.add(n)
-    #                 print('adding root', n, roots)
+    #                 logging.debug(('adding root', n, roots))
     #         [self.add_edge('0', n) for n in roots]
     #
-    #         # print('found roots', roots, ' count: ', len(roots))
-    #         if len(roots) != 1: print('weird, should i only using 1st root node: ', roots)
+    #         # logging.debug(('found roots', roots, ' count: ', len(roots)))
+    #         if len(roots) != 1: logging.debug(('weird, should i only using 1st root node: ', roots))
     #         self.origin = '0'
     #
-    #         print('tgraph root node: ', tgraph.origin)
+    #         logging.debug(('tgraph root node: ', tgraph.origin))
 
     def setOrigin(self):
-        print('tgraph root node: ', self.origin)
+        logging.debug(('tgraph root node: ', self.origin))
         if not self.origin:
             roots = set()
             self.origin = '0'
             for n in self.getLEAFnodes():
-                # print('node n has preds: ', n, list(self.predecessors(n)))
-                # print('node n has inbound edges, in_degree:  ', n, self.in_degree(n))
-                print('node n has attribute: ', self.nodes[n]['label'])
+                # logging.debug(('node n has preds: ', n, list(self.predecessors(n))))
+                # logging.debug(('node n has inbound edges, in_degree:  ', n, self.in_degree(n)))
+                logging.debug(('node n has attribute: ', self.nodes[n]['label']))
                 if 'attackerLocated' in self.nodes[n]['label']:
                     roots.add(n)
-                    print('adding root', n, roots)
+                    logging.debug(('adding root', n, roots))
             o_edges = [((u, v, k), e) for u, v, k, e in self.out_edges(roots, keys=True, data=True)]
             for r in roots:
                 for ((u2, v2, k2), e2) in o_edges:
-                    print('Adding to new root: u2, v2, k2, e2: ', u2, v2, k2, e2)
+                    logging.debug(('Adding to new root: u2, v2, k2, e2: ', u2, v2, k2, e2))
                     self.add_edge(self.origin, v2, k2, *e2)
 
             # [self.add_edge('0', n) for n in roots]
 
-            # print('found roots', roots, ' count: ', len(roots))
-            if len(roots) != 1: print('weird, should i only using 1st root node: ', roots)
+            # logging.debug(('found roots', roots, ' count: ', len(roots)))
+            if len(roots) != 1: logging.debug(('weird, should i only using 1st root node: ', roots))
             self.nodes[self.origin]['type'] = 'ROOT'
 
-            print('tgraph root node: ', tgraph.origin)
+            logging.debug(('tgraph root node: ', self.origin))
 
     def setEdgeScore(self, u, v, k, score):
 
@@ -569,8 +573,8 @@ class AttackGraph(nx.MultiDiGraph):
 
             denom = self.nodes[n]['succs_sum'] + self.nodes[n]['preds_sum']
             self.setEdgeScore(n, n, self.getSelfEdge(n), self.nodes[n]['preds_sum'])
-            print("sums: node[{}] outsum[{}] insum[{}] denom[{}] selfedge[{}]".format(
-                n, self.nodes[n]['succs_sum'], self.nodes[n]['preds_sum'], denom, self[n][n][self.getSelfEdge(n)]['score']))
+            logging.debug(("sums: node[{}] outsum[{}] insum[{}] denom[{}] selfedge[{}]".format(
+                n, self.nodes[n]['succs_sum'], self.nodes[n]['preds_sum'], denom, self[n][n][self.getSelfEdge(n)]['score'])))
 
 
 
@@ -600,7 +604,7 @@ class AttackGraph(nx.MultiDiGraph):
         # set edge weights as fraction of sum_succs
         for n in self.nodes():
             denom = self.nodes[n]['succs_sum'] + self.nodes[n]['preds_sum']
-            print('sums: ', n, self.nodes[n]['succs_sum'], self.nodes[n]['preds_sum'], denom, self.getSelfEdge(n))
+            logging.debug(('sums: ', n, self.nodes[n]['succs_sum'], self.nodes[n]['preds_sum'], denom, self.getSelfEdge(n)))
             if denom != 0:
                 # i_edges = [((u, v, k), e) for u, v, k, e in self.in_edges(n, keys=True, data=True)]
                 o_edges = [((u, v, k), e) for u, v, k, e in self.out_edges(n, keys=True, data=True)]
@@ -615,17 +619,17 @@ class AttackGraph(nx.MultiDiGraph):
 
 
 
-            # print(self.edges.data(keys=True, data=True))
+            # logging.debug((self.edges.data(keys=True, data=True)))
             # if not (n in self.successors(n) or n in self.predecessors(n)):  # add self ref in not exists
             #     k = self.add_edge(n, n)
-            #     print('adding n successors: ', n, list(self.successors(n)))
+            #     logging.debug(('adding n successors: ', n, list(self.successors(n))))
         # for u, v, k, d in self.edges.data(keys=True, data=True):
-        #     print('(u, v) u[succs_sum], v[scores]: ', '(', u, ',', v, ')  [',  sum(self.nodes[v]['scores']), '/',
-        #           self.nodes[u]['succs_sum'], ']')
+        #     logging.debug(('(u, v) u[succs_sum], v[scores]: ', '(', u, ',', v, ')  [',
+        #     sum(self.nodes[v]['scores']), '/', self.nodes[u]['succs_sum'], ']'))
         #     if self.nodes[n]['succs_sum'] and self.nodes[n]['succs_sum'] > 0:
         #         d['weight'] = sum(self.nodes[v]['scores']) / self.nodes[u]['succs_sum']
         #         d['label'] = round(d['weight'], 2) # only for labelling edges in img
-        # print(self.edges.data(keys=True, data=True))
+        # logging.debug((self.edges.data(keys=True, data=True)))
 
 
     def getSelfEdge(self, n):
@@ -635,7 +639,7 @@ class AttackGraph(nx.MultiDiGraph):
             k = self.add_edge(n, n)
             return k
         elif self.number_of_edges(n,n) != 1:
-            print('too many selfloop edges!')
+            logging.debug(('too many selfloop edges!'))
         else: return 0 # default key
 
 
@@ -651,9 +655,9 @@ class AttackGraph(nx.MultiDiGraph):
         tgraph = tgraph
 
 
-        # print('tgraph root node: ', tgraph.has_node('0'))
+        # logging.debug(('tgraph root node: ', tgraph.has_node('0')))
         tgraph.setOrigin()
-        # print('tgraph root node: ', tgraph.has_node('0'))
+        # logging.debug(('tgraph root node: ', tgraph.has_node('0')))
         tgraph.plot2(outfilename=self.name + '_000.6_addOrigin.png')
 
         # 1. set AND node exploit score
@@ -663,32 +667,32 @@ class AttackGraph(nx.MultiDiGraph):
 
         # 2. remove LEAF nodes after scores applied
         tgraph.pruneLEAFS()
-        print('Removing dead nodes: ', list(nx.isolates(tgraph)))
+        logging.debug(('Removing dead nodes: ', list(nx.isolates(tgraph))))
         tgraph.remove_nodes_from(list(nx.isolates(tgraph)))
         tgraph.plot2(outfilename=self.name + '_002_pruneLEAFs.png')
 
         # 3. Join edges passing through this and (multi-hop, no exploit)
         tgraph.coalesceANDnodes()
-        print('Removing dead nodes: ', list(nx.isolates(tgraph)))
+        logging.debug(('Removing dead nodes: ', list(nx.isolates(tgraph))))
         tgraph.remove_nodes_from(list(nx.isolates(tgraph)))
         tgraph.plot2(outfilename=self.name + '_003_coalesceANDs.png')
 
         # 4. push AND exploit_score down to child or score dicts
         tgraph.scoreANDs()
-        print('Removing dead nodes: ', list(nx.isolates(tgraph)))
+        logging.debug(('Removing dead nodes: ', list(nx.isolates(tgraph))))
         tgraph.remove_nodes_from(list(nx.isolates(tgraph)))
         tgraph.plot2(outfilename=self.name + '_004_scoreANDs.png')
 
         # 5. remove or nodes with empty score dict
         tgraph.coalesceORnodes()
-        print('Removing dead nodes: ', list(nx.isolates(tgraph)))
+        logging.debug(('Removing dead nodes: ', list(nx.isolates(tgraph))))
         tgraph.remove_nodes_from(list(nx.isolates(tgraph)))
         tgraph.plot2(outfilename=self.name + '_005_coalesceORs.png')
 
         # # 6. add root note for entry handle
-        # # print('tgraph root node: ', tgraph.has_node('0'))
+        # # logging.debug(('tgraph root node: ', tgraph.has_node('0')))
         # tgraph.setOrigin()
-        # # print('tgraph root node: ', tgraph.has_node('0'))
+        # # logging.debug(('tgraph root node: ', tgraph.has_node('0')))
         # tgraph.plot2(outfilename=self.name + '_006_addOrigin.png')
 
         # 6.5 add edge scores
@@ -704,38 +708,38 @@ class AttackGraph(nx.MultiDiGraph):
 
 
         # for n in tgraph.nodes():
-        #     print(tgraph.nodes[n])
+        #     logging.debug((tgraph.nodes[n]))
 
         # orNodes = tgraph.getORnodes()
-        # print('or nodes before: ', orNodes)
+        # logging.debug(('or nodes before: ', orNodes))
         # for n in orNodes:
-        #     # print('set or node: ', n, type(n))
+        #     # logging.debug(('set or node: ', n, type(n)))
         #     tgraph.setORscore(n)
-        #     print(tgraph.nodes[n])
-        # print('or nodes after: ', orNodes)
+        #     logging.debug((tgraph.nodes[n]))
+        # logging.debug(('or nodes after: ', orNodes))
 
         tgraph.remove_node(tgraph.origin)
 
         tmatrix = tgraph.convertTMatrix()
 
 
-        # print(type(tmatrix))
+        # logging.debug((type(tmatrix)))
         # tmatrix.setdiag(1)
-        # print(tmatrix.todense())
-        # print('nodes: ', tgraph.nodes())
+        # logging.debug((tmatrix.todense()))
+        # logging.debug(('nodes: ', tgraph.nodes()))
 
         # for n in tgraph.nodes():
-        #     print(tgraph[n])
+        #     logging.debug((tgraph[n]))
         # tm_data = nx.adjacency_data(tgraph)
         # for k in tm_data.keys():
-        #     print(k, tm_data[k])
+        #     logging.debug((k, tm_data[k]))
 
         outfile = 'test.csv'
         if 'matrixFileName' in kwargs.keys():
             outfile = kwargs['matrixFileName']
 
-        # print('header type: ', type(tgraph.node_list), tgraph.node_list)
-        print('header type: ', type(tgraph.getNodeList()), tgraph.getNodeList())
+        # logging.debug(('header type: ', type(tgraph.node_list), tgraph.node_list))
+        logging.debug(('header type: ', type(tgraph.getNodeList()), tgraph.getNodeList()))
         self.writeTmatrix(header=tgraph.getNodeList(), tmatrix=tmatrix)
 
 
@@ -774,12 +778,12 @@ class AttackGraph(nx.MultiDiGraph):
         tmp = list(transit.keys())
         for n in range(len(tmp)):
             a = max([int(i) for i in tmp])
-            # print('added a to nodelist', a, type(str(a)), node_list)
+            # logging.debug(('added a to nodelist', a, type(str(a)), node_list))
             node_list.append(str(a))
             tmp.remove(str(a))
 
         # node_list.append(sink)
-        print('added sink to nodelist', sink, node_list, self.nodes(), len(node_list), len(self.nodes()))
+        logging.debug(('added sink to nodelist', sink, node_list, self.nodes(), len(node_list), len(self.nodes())))
         assert(len(node_list) == len(self.nodes()))
 
         return node_list
@@ -792,7 +796,7 @@ class AttackGraph(nx.MultiDiGraph):
 
         nodelist = self.getNodeList()
 
-        print('len(node_list) == len(tgraph.nodes())', len(self.getNodeList()), ' == ',  len(self.nodes()))
+        logging.debug(('len(node_list) == len(tgraph.nodes())', len(self.getNodeList()), ' == ',  len(self.nodes())))
 
 
 
@@ -804,8 +808,8 @@ class AttackGraph(nx.MultiDiGraph):
 
 
 
-        # print(tmatrix)
-        print(tmatrix.todense())
+        # logging.debug((tmatrix))
+        logging.debug((tmatrix.todense()))
 
 
 
@@ -814,16 +818,16 @@ class AttackGraph(nx.MultiDiGraph):
 
 
 
-            # print('node | in_degree | out_degree: ', n, ' | ', tgraph.in_degree(n), ' | ', tgraph.out_degree(n))
-            # print('tgraph', n, v)
+            # logging.debug(('node | in_degree | out_degree: ', n, ' | ', tgraph.in_degree(n), ' | ', tgraph.out_degree(n)))
+            # logging.debug(('tgraph', n, v))
 
     def writeTmatrix(self, header=None, tmatrix=None):
-        # print('header: ', filename, header, tmatrix.todense())
-        # print('Types tmatrix, dense: ', type(tmatrix), type(tmatrix.todense()))
+        # logging.debug(('header: ', filename, header, tmatrix.todense()))
+        # logging.debug(('Types tmatrix, dense: ', type(tmatrix), type(tmatrix.todense())))
 
         #filename = self.inputDir + '/' + self.outfileName + '.csv'
         filename =  self.inputDir + '/' + self.name + '.csv'
-        print('Writing transition matrix to: ', filename)
+        logging.debug(('Writing transition matrix to: ', filename))
         pandas.DataFrame(tmatrix.todense()).round(decimals=2).to_csv(filename, header=header, index=False )
         # with open(filename, "w") as f:
         #     writer = csv.writer(f)
@@ -833,11 +837,11 @@ class AttackGraph(nx.MultiDiGraph):
 
 if __name__ == '__main__':
     if len(sys.argv) != 4:
-        print('<usage> genTransMatrix.py inputdir outputfile customScoresDir')
+        logging.debug(('<usage> genTransMatrix.py inputdir outputfile customScoresDir'))
         sys.exit()
 
     # if len(sys.argv) != 4:
-    #     print('<usage> genTransMatrix.py inputdir run_name')
+    #     logging.debug(('<usage> genTransMatrix.py inputdir run_name'))
     #     inputDir = os.getcwd()
     #     matrixFileName = 'a.csv'
     #     name = 'nameMe'
@@ -849,7 +853,7 @@ if __name__ == '__main__':
         # write transMatrix.csv
         # matrixFileName = sys.argv[2] + '.csv'
     matrixFileName = inputDir + '/' + sys.argv[2] + '.csv'
-    name =  sys.argv[2]
+    name = sys.argv[2]
 
     A = AttackGraph(inputDir=inputDir, scriptsDir=scriptsDir)
     A.name = name
@@ -865,4 +869,4 @@ if __name__ == '__main__':
     tmatrix = A.getTransMatrix(tgraph, inputDir=inputDir, outfileName=outfileName)
     # tgraph.writeTmatrix(matrixFileName, header=A.node_list, tmatrix=tmatrix)
 
-    # print(tmatrix)
+    # logging.debug((tmatrix))
