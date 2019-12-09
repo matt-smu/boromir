@@ -1,0 +1,7 @@
+*.pyc
+.idea
+.git
+*.log
+data/test**
+mulval_src_orig/mulval_1.*/
+

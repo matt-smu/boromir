@@ -6,6 +6,7 @@
 from itertools import chain
 from jinja2 import Template
 import argparse
+import re
 
 import os
 import platform
@@ -31,8 +32,7 @@ from stix2 import FileSystemSource as fs
 from stix2 import Filter
 from stix2.utils import get_type_from_id
 
-from pyxsb import pyxsb_start_session, pyxsb_end_session, pyxsb_command, \
-                  pyxsb_query, XSBFunctor, XSBVariable, xsb_to_json, json_to_xsb
+# from pyxsb import pyxsb_start_session, pyxsb_end_session, pyxsb_command, pyxsb_query, XSBFunctor, XSBVariable, xsb_to_json, json_to_xsb
 
 from pyxsb import *
 
@@ -49,7 +49,8 @@ WORKING_DIR = '/'.join((BASE_DIR, DATA_DIR, 'test_003'))
 XSB_ARCH_DIR = '/opt/apps/xsb/XSB/config/x86_64-unknown-linux-gnu'
 
 ## port MulVals graph_gen.sh to python
-MULVALROOT = '/opt/mulval'
+# MULVALROOT = '/opt/mulval'
+MULVALROOT = '/opt/projects/diss/mulval/mulval'
 INTERACTIONRULES = '/'.join((MULVALROOT, 'kb/interaction_rules.P'))
 INTERACTIONRULES_CVSS = '/'.join((MULVALROOT, 'kb/interaction_rules_with_metrics.P'))
 RULES_WITH_METRIC_ARTIFACTS = '/'.join((MULVALROOT, 'kb/interaction_rules_with_metric_artifacts.P'))
@@ -65,8 +66,48 @@ trace_option = 'completeTrace2'
 
 INPUT_FILE = WORKING_DIR + '/input.P'
 
+ATTACK_GRAPH_BIN = '/'.join((MULVALROOT, "bin/attack_graph"))
+
 # os.chdir(WORKING_DIR)
 
+
+class attack_graph(object):
+
+    def __init__(self, *args, **kwargs):
+        super(attack_graph, self)
+
+    def attack_graph(self, *args, **kwargs):
+        """
+        cerr << "Usage: attack_graph [options] tracefile_name" << endl;
+        cerr << "Options: " << endl;
+        cerr << "    -l:  List nodes and arcs as separate files." << endl;
+        cerr << "    -p:  Only output simple paths." << endl;
+        cerr << "    -t:  Test mode." << endl;
+        cerr << "    -s:  Run SAT solver." << endl;
+        """
+        # subprocess.run([ATTACK_GRAPH_BIN, "trace_output.P"], stdout=subprocess.PIPE)
+        # subprocess.run([ATTACK_GRAPH_BIN,"-l", "trace_output.P", ">", './AttackGraph.txt'], shell=True)
+        ag_txt = subprocess.check_output([ATTACK_GRAPH_BIN, "-l", "-p", "trace_output.P"])
+        # logging.debug(ag_txt)
+        return ag_txt
+
+    def render(self):
+        """
+        Usage: render.sh [--arclabel]
+                 [--reverse]
+                 [--simple]
+                 [-h|--help]
+
+        :return:
+        """
+        my_env = os.environ.copy()
+        # my_env["MULVAL_HOME"] = MULVALROOT
+        my_env["MULVALROOT"] = MULVALROOT  # @TODO this is getting set to $MULVAL_HOME (literal) somewhere
+        cmd = MULVALROOT + '/utils/render.sh'
+        # subprocess.Popen(cmd, env=my_env, shell=True)
+        # subprocess.call([MULVALROOT+'/utils/render.sh'], env=my_env, shell=True)
+        subprocess.call('echo $MULVAL_HOME', env=my_env, shell=True)
+        subprocess.call(cmd, env=my_env, shell=True)
 
 class graph_gen(object):
 
@@ -178,10 +219,11 @@ class graph_gen(object):
     def runMulVal(self):
         pyxsb_start_session(XSB_ARCH_DIR)
         #     from pyxsb import *
-        logging.info(pyxsb_query('cwd(D).'))d
+        logging.info(pyxsb_query('cwd(D).'))
 
 
-        pyxsb_query('catch(abort,Exception,true).')
+
+        # pyxsb_query('catch(abort,Exception,true).')
 
         # xsb 2>xsb_log.txt 1>&2 <<EOF
         # [environment].
@@ -193,27 +235,31 @@ class graph_gen(object):
         # # tabling breaks the  pyxsb_command but works with lowlevel api :?
         # UPDATE: 3.7 fails... rolling back to 3.6 works
         # TODO: clean up
-        c2p_functor(b"consult", 1, reg_term(1))
-        c2p_string(b"environment", p2p_arg(reg_term(1), 1))
-        xsb_command()
+        # c2p_functor(b"consult", 1, reg_term(1))
+        # c2p_string(b"environment", p2p_arg(reg_term(1), 1))
+        # xsb_command()
+        pyxsb_command('[environment].')
 
-        c2p_functor(b"tell", 1, reg_term(1))
-        c2p_string(b"goals.txt", p2p_arg(reg_term(1), 1))
-        xsb_command()
+
+        # c2p_functor(b"tell", 1, reg_term(1))
+        # c2p_string(b"goals.txt", p2p_arg(reg_term(1), 1))
+        # xsb_command()
+        pyxsb_command("tell('goals.txt').")
 
         pyxsb_command('writeln("Goal:"). ')
 
-        c2p_functor(b"iterate", 1, reg_term(1))
-        c2p_string(b"attackGoal(G),(write(' '), write_canonical(G), nl)", p2p_arg(reg_term(1), 1))
-        xsb_command()
+        # c2p_functor(b"iterate", 1, reg_term(1))
+        # c2p_string(b"attackGoal(G),(write(' '), write_canonical(G), nl)", p2p_arg(reg_term(1), 1))
+        # xsb_command()
+        pyxsb_command("iterate(attackGoal(G),(write(' '), write_canonical(G), nl)).")
         pyxsb_command('told.')
         #     pyxsb_end_session()
 
         #     pyxsb_start_session(XSB_ARCH_DIR)
-        c2p_functor(b"consult", 1, reg_term(1))
-        c2p_string(b"run", p2p_arg(reg_term(1), 1))
-        xsb_command()
-        #     pyxsb_command('[run].')
+        # c2p_functor(b"consult", 1, reg_term(1))
+        # c2p_string(b"run", p2p_arg(reg_term(1), 1))
+        # xsb_command()
+        pyxsb_command('[run].')
 
         pyxsb_end_session()
 
@@ -304,3 +350,31 @@ def Main():
     gg = graph_gen()
 
     gg.graph_gen()
+
+    ag = attack_graph()
+
+    ag_text = ag.attack_graph().decode('UTF-8')
+    # logging.debug(type(ag_text.decode('UTF-8')))
+    gg.writeFile(WORKING_DIR + '/AttackGraph.txt', ag_text)
+
+    verts = ''
+    arcs  = ''
+    for line in ag_text.splitlines():
+        if re.search(r'AND|OR|LEAF', line):
+            verts += line + '\n'
+        else:
+            arcs += line + '\n'
+
+    # logging.info('arcs: %s' % arcs)
+    # logging.info('verts: %s' % verts)
+
+    gg.writeFile(WORKING_DIR + '/ARCS.CSV', arcs)
+    gg.writeFile(WORKING_DIR + '/VERTICES.CSV', verts)
+
+    ag.render()
+
+
+
+
+
+
