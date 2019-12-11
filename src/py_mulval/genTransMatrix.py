@@ -46,7 +46,7 @@ class AttackGraph(nx.MultiDiGraph):
     Class for working with MulVal Attack Graphs.
     """
 
-    def __init__(self, data=None, name='', file=None, **kwargs):
+    def __init__(self, *args, **kwargs):
 
         # logging.debug((self.nodes()))
 
@@ -55,7 +55,7 @@ class AttackGraph(nx.MultiDiGraph):
             self.scriptsDir = kwargs['scriptsDir']
             logging.debug(('scriptsDir: ', self.scriptsDir))
 
-        # self.inputDir = '.' #os.cwd()
+        self.inputDir = '.' #os.cwd()
         if 'inputDir' in kwargs.keys():
             self.inputDir = kwargs['inputDir']
             logging.debug(('inputDir: ', self.inputDir))
@@ -68,6 +68,13 @@ class AttackGraph(nx.MultiDiGraph):
             # logging.debug(('coalesced rules loaded: ', self.coalesced_rules))
             self.exploit_rules = self.conf_override['exploit_rules']
             self.exploitDict = self.conf_override['exploitDict']
+
+        # Prevent slowdown from writing lots of pictures to disk
+        self.PLOT_INTERMEDIATE_GRAPHS = True
+        if 'PLOT_INTERMEDIATE_GRAPHS' in kwargs.keys():
+            self.PLOT_INTERMEDIATE_GRAPHS = kwargs['PLOT_INTERMEDIATE_GRAPHS']
+            logging.debug(('PLOT_INTERMEDIATE_GRAPHS: ', self.PLOT_INTERMEDIATE_GRAPHS))
+
 
         self.origin = None
         self.target = None
@@ -105,7 +112,10 @@ class AttackGraph(nx.MultiDiGraph):
     #     # nx.draw(self, with_labels=True, font_weight='bold', labels=None)
     #     plt.show()
 
-    def plot2(self, **kwargs):
+    def plot2(self, *args, **kwargs):
+        if not self.PLOT_INTERMEDIATE_GRAPHS:
+            # bail if we don't want noisy output
+            return
         if 'outfilename' in kwargs:
             outfilename = kwargs.get("outfilename")
         else:
@@ -517,8 +527,9 @@ class AttackGraph(nx.MultiDiGraph):
         else:
             return 0  # default key
 
-    def getTransMatrix(self, tgraph, **kwargs):
-        tgraph = tgraph
+    def getTransMatrix(self, *args, **kwargs):
+        # tgraph = tgraph
+        tgraph = deepcopy(self)
 
         # logging.debug(('tgraph root node: ', tgraph.has_node('0')))
         tgraph.setOrigin()
@@ -596,12 +607,12 @@ class AttackGraph(nx.MultiDiGraph):
         #     logging.debug((k, tm_data[k]))
 
         outfile = 'test.csv'
-        if 'matrixFileName' in kwargs.keys():
-            outfile = kwargs['matrixFileName']
-
+        if 'MatrixFile' in kwargs.keys():
+            outfile = kwargs['MatrixFile']
+        print(outfile)
         # logging.debug(('header type: ', type(tgraph.node_list), tgraph.node_list))
         logging.debug(('header type: ', type(tgraph.getNodeList()), tgraph.getNodeList()))
-        self.writeTmatrix(header=tgraph.getNodeList(), tmatrix=tmatrix)
+        self.writeTmatrix(header=tgraph.getNodeList(), tmatrix=tmatrix, filename=outfile)
 
         return tmatrix
 
@@ -671,37 +682,33 @@ class AttackGraph(nx.MultiDiGraph):
         # logging.debug(('node | in_degree | out_degree: ', n, ' | ', tgraph.in_degree(n), ' | ', tgraph.out_degree(n)))
         # logging.debug(('tgraph', n, v))
 
-    def writeTmatrix(self, header=None, tmatrix=None):
+    def writeTmatrix(self, header=None, tmatrix=None, filename=None):
         # logging.debug(('header: ', filename, header, tmatrix.todense()))
         # logging.debug(('Types tmatrix, dense: ', type(tmatrix), type(tmatrix.todense())))
 
         # filename = self.inputDir + '/' + self.outfileName + '.csv'
-        filename = self.inputDir + '/' + self.name + '.csv'
-        logging.debug(('Writing transition matrix to: ', filename))
+        if not filename:
+            filename = self.inputDir + '/' + self.name + '.csv'
+        logging.info(('Writing transition matrix to: ', filename))
         pandas.DataFrame(tmatrix.todense()).round(decimals=2).to_csv(filename, header=header, index=False)
-        # with open(filename, "w") as f:
-        #     writer = csv.writer(f)
-        #     writer.writerow(header)
-        #     writer.writerows(tmatrix.todense())
 
+    @staticmethod
+    def printHelp():
+        print('<usage> genTransMatrix.py inputdir outputfile customScoresDir, {opts}')
+        print('options: ',
+              'PLOT_INTERMEDIATE_GRAPHS=True'
+              )
 
 if __name__ == '__main__':
     if len(sys.argv) != 4:
-        logging.debug(('<usage> genTransMatrix.py inputdir outputfile customScoresDir'))
+        AttackGraph.printHelp()
+        # logging.debug(('<usage> genTransMatrix.py inputdir outputfile customScoresDir opts'))
         sys.exit()
 
-    # if len(sys.argv) != 4:
-    #     logging.debug(('<usage> genTransMatrix.py inputdir run_name'))
-    #     inputDir = os.getcwd()
-    #     matrixFileName = 'a.csv'
-    #     name = 'nameMe'
-    # else:
-    # read inputDir/AttackGraph.dot
+    AttackGraph.printHelp()
     inputDir = sys.argv[1]
     outfileName = sys.argv[2]
     scriptsDir = sys.argv[3]
-    # write transMatrix.csv
-    # matrixFileName = sys.argv[2] + '.csv'
     matrixFileName = inputDir + '/' + sys.argv[2] + '.csv'
     name = sys.argv[2]
 
@@ -711,12 +718,5 @@ if __name__ == '__main__':
     A.plot2(outfilename=name + '_001_orig.png')
     tgraph = deepcopy(A)
 
-    # make transition matrix
-    # A.getANDnodes()
-    # A.getORnodes()
-    # A.getLEAFnodes()
-
     tmatrix = A.getTransMatrix(tgraph, inputDir=inputDir, outfileName=outfileName)
-    # tgraph.writeTmatrix(matrixFileName, header=A.node_list, tmatrix=tmatrix)
 
-    # logging.debug((tmatrix))

@@ -41,34 +41,46 @@ from genTransMatrix import *
 
 sys.path.append('..')
 
+SEP = os.path.sep
 
-# MulVal Data Loading
-# BASE_DIR = '/opt/projects/diss/jupyter_nbs/mine'
-BASE_DIR = '/opt/projects/diss/py-mulval'
-DATA_DIR = '/'.join((BASE_DIR, 'data'))
-WORKING_DIR = '/'.join((DATA_DIR, 'test_003'))
-
+# needed if pyxsb can't find xsb
 XSB_ARCH_DIR = '/opt/apps/xsb/XSB/config/x86_64-unknown-linux-gnu'
 
 ## port MulVals graph_gen.sh to python
+
+# MulVal Install Files
 # MULVALROOT = '/opt/mulval'
 MULVALROOT = '/opt/projects/diss/mulval/mulval'
-INTERACTIONRULES = '/'.join((MULVALROOT, 'kb/interaction_rules.P'))
-INTERACTIONRULES_CVSS = '/'.join((MULVALROOT, 'kb/interaction_rules_with_metrics.P'))
-RULES_WITH_METRIC_ARTIFACTS = '/'.join((MULVALROOT, 'kb/interaction_rules_with_metric_artifacts.P'))
+INTERACTIONRULES = SEP.join((MULVALROOT, 'kb/interaction_rules.P'))
+INTERACTIONRULES_CVSS = SEP.join((MULVALROOT, 'kb/interaction_rules_with_metrics.P'))
+RULES_WITH_METRIC_ARTIFACTS = SEP.join((MULVALROOT, 'kb/interaction_rules_with_metric_artifacts.P'))
+ATTACK_GRAPH_BIN = SEP.join((MULVALROOT, "bin/attack_graph"))
+
+# MulVal Data Loading
+# BASE_DIR = '/opt/projects/diss/jupyter_nbs/mine'
+INPUT_FILE_NAME = 'input.P'
+INPUT_BASE_NAME = os.path.splitext(INPUT_FILE_NAME)[0]
+TRACE_MODE = 'completeTrace2'
+BASE_DIR = '/opt/projects/diss/py-mulval'
+DATA_DIR = SEP.join((BASE_DIR, 'data'))
+WORKING_DIR = SEP.join((DATA_DIR, 'test_003'))
+INPUT_FILE = SEP.join((WORKING_DIR, INPUT_FILE_NAME))
+
+RUNNING_RULES_NAME = SEP.join((WORKING_DIR, 'running_rules.P'))
+ENV_FILE_NAME = SEP.join((WORKING_DIR, 'environment.P'))
+RUN_FILE_NAME = SEP.join((WORKING_DIR, 'run.P'))
 
 _RULE_FILES = list()
 _RULE_FILES_ADDITIONAL = list()
 
-RUNNING_RULES_NAME = WORKING_DIR + '/running_rules.P'
-ENV_FILE_NAME = WORKING_DIR + '/environment.P'
-RUN_FILE_NAME = WORKING_DIR + '/run.P'
+# Output vars
+RESULTS_DIR = SEP.join((WORKING_DIR, 'output'))
+MATRIX_FILE_NAME= INPUT_BASE_NAME + '.csv'
+MATRIX_FILE = SEP.join((RESULTS_DIR, MATRIX_FILE_NAME))
 
-trace_option = 'completeTrace2'
 
-INPUT_FILE = WORKING_DIR + '/input.P'
 
-ATTACK_GRAPH_BIN = '/'.join((MULVALROOT, "bin/attack_graph"))
+
 
 # os.chdir(WORKING_DIR)
 
@@ -145,7 +157,7 @@ class graph_gen(object):
         _input_file = INPUT_FILE if 'input_file' not in kwargs else kwargs.get('input_file')
         _MULVALROOT = MULVALROOT  # if 'MULVALROOT' not in kwargs else kwargs.get('MULVALROOT')
         _type = None  # if 'type' not in kwargs else kwargs.get('type')  # 'run' | 'environment' includes the mulval_run line
-        _tracemode = 'completeTrace2' if 'tracemode' not in kwargs else kwargs.get('tracemode')
+        _tracemode = TRACE_MODE if 'tracemode' not in kwargs else kwargs.get('tracemode')
         _dynamic_file = None
         _trim = False  # True is --trim | -tr flags passed
         _trim_rules = MULVALROOT + '/src/analyzer/advances_trim.P'
@@ -358,6 +370,11 @@ nfsMounted(workStation, '/usr/local/share', fileServer, '/export', read).
     logging.debug(('creating input file: %s') % INPUT_FILE)
 
 
+# def run_R_script(r_file_name, **opts):
+#
+#     if
+#     subprocess.call('Rscript', r_file_name, env=my_env, shell=True)
+
 
 # if __name__ == "__main__":
 def Main():
@@ -409,30 +426,30 @@ def Main():
     ## genTransMatrix
     ####
     inputDir = WORKING_DIR
-    outfileName = 'input_outfile'
+    outfileName = os.path.splitext(INPUT_FILE_NAME)[0] # 'input'
     scriptsDir = DATA_DIR
-        # write transMatrix.csv
-        # matrixFileName = sys.argv[2] + '.csv'
-    matrixFileName = inputDir + '/' + outfileName + '.csv'
-    name =  outfileName
+    pathlib.Path(RESULTS_DIR).mkdir(parents=True, exist_ok=True)
 
-    A = AttackGraph(inputDir=inputDir, scriptsDir=scriptsDir)
-    A.name = name
+    opts = dict()
+    opts['scriptsDir'] = scriptsDir
+    opts['inputDir'] = inputDir
+    opts['outfileName'] = outfileName
+    opts['PLOT_INTERMEDIATE_GRAPHS'] = True
+    opts['MatrixFile'] = MATRIX_FILE
 
-    A.plot2(outfilename= name + '_001_orig.png')
-    tgraph = deepcopy(A)
+    # A = AttackGraph(inputDir=inputDir, scriptsDir=scriptsDir, opts=opts)
+    A = AttackGraph(**opts)
+    A.name = outfileName
+    A.plot2(outfilename= A.name + '_001_orig.png')
+    tmatrix = A.getTransMatrix(**opts)
+    logging.debug('Created weighted transition matrix:\n %s' % tmatrix)
 
-    # make transition matrix
-    # A.getANDnodes()
-    # A.getORnodes()
-    # A.getLEAFnodes()
+    # Run analytics
 
-    tmatrix = A.getTransMatrix(tgraph, inputDir=inputDir, outfileName=outfileName)
-
-
-
-
-
-
+    mcsim_opts = dict()
+    mcsim_opts['input'] = MATRIX_FILE
+    mcsim_opts['output'] = RESULTS_DIR
+    mcsim_opts['label'] = INPUT_BASE_NAME
+    subprocess.call(['Rscript', DATA_DIR + '/mcsim.r', '--input=' + MATRIX_FILE, '--output=' + RESULTS_DIR, '--label=' + INPUT_BASE_NAME ])
 
 
