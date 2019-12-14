@@ -437,7 +437,7 @@ def Main():
     opts['PLOT_INTERMEDIATE_GRAPHS'] = True
     opts['MatrixFile'] = MATRIX_FILE
 
-    # A = AttackGraph(inputDir=inputDir, scriptsDir=scriptsDir, opts=opts)
+    # A = AttackGraph(inputDir=inputDir, scriptsDir=scriptsDir, opts=opts
     A = AttackGraph(**opts)
     A.name = outfileName
     A.plot2(outfilename= A.name + '_001_orig.png')
