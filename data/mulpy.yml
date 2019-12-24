@@ -1,0 +1,11 @@
+
+XSB_ARCH_DIR: '/opt/apps/xsb/XSB/config/x86_64-unknown-linux-gnu'
+MULVALROOT: '/opt/projects/diss/mulval/mulval'
+
+INPUT_FILE_NAME: 'single_host.P'
+
+BASE_DIR: '/opt/projects/diss/py-mulval'
+
+WORKING_DIR: '/opt/projects/diss/py-mulval/test_005_single_host'
+MODELS_DIR: '/opt/projects/diss/py-mulval/models'
+RULES_DIR: '/opt/projects/diss/py-mulval/rules'

@@ -1,7 +1,8 @@
-
+#!/usr/bin/env python
 
 import sys
 
-from py_mulval.py_mulval import Main
+from py_mulval.mulpy import Main
 
 sys.exit(Main())
+

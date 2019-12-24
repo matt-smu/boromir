@@ -1,0 +1,18 @@
+attackerLocated(internet).
+attackGoal(execCode(webServer,root)).
+
+hacl(internet, webServer, tcp, 80).
+%hacl(webServer, _,  _, _).
+%hacl(H,H,_,_).
+
+/* configuration information of fileServer */
+
+/* configuration information of webServer */
+vulExists(webServer, 'v1', p1).
+vulProperty('v1', remoteExploit, privEscalation).
+networkServiceInfo(webServer , httpd, tcp , 80 , apache).
+
+vulExists(webServer, 'v2', p2).
+vulProperty('v2', localExploit, privEscalation).
+%networkServiceInfo(webServer , httpd, tcp , 80 , apache).
+
