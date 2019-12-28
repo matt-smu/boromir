@@ -9,9 +9,12 @@ import sys
 import tempfile
 import uuid
 
+from py_mulval import flag_util
 from py_mulval import genTransMatrix
 from py_mulval import log_util
+from py_mulval import publisher
 from py_mulval import py_mulval
+from py_mulval import sample
 
 FLAGS = flags.FLAGS
 
@@ -235,6 +238,24 @@ def _GenTransMatrix():
   subprocess.call(['Rscript', FLAGS.data_dir + '/mcsim.r', '--input=' + matrix_file,
                    '--output=' + FLAGS.output_dir, '--label=' + outfileName])
 
+
+def PublishRunStartedSample(spec):
+  """Publishes a sample indicating that a run has started.
+
+  This sample is published immediately so that there exists some metric for any
+  run (even if the process dies).
+
+  Args:
+    spec: The BenchmarkSpec object with run information.
+  """
+  collector = publisher.SampleCollector()
+  metadata = {
+      'flags': str(flag_util.GetProvidedCommandLineFlags())
+  }
+  collector.AddSamples(
+      [sample.Sample('Run Started', 1, 'Run Started', metadata)],
+      spec.name, spec)
+  collector.PublishSamples()
 
 
 def Main():
