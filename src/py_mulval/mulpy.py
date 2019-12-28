@@ -149,6 +149,43 @@ def SetupMulpy():
   _SetModelsDir()
   # _SetRulesDir() # if no rules_dir just use default set
   _SetOutputDir()
+  # Copy model or example into base_dir
+  if pathlib.Path(SEP.join((FLAGS.models_dir, FLAGS.input_file))).exists():
+    input_p = pathlib.Path(
+      SEP.join((FLAGS.models_dir, FLAGS.input_file))).read_text()
+  else:
+    input_p = """attackerLocated(internet).
+  attackGoal(execCode(workStation,_)).
+
+  hacl(internet, webServer, tcp, 80).
+  hacl(webServer, _,  _, _).
+  hacl(fileServer, _, _, _).
+  hacl(workStation, _, _, _).
+  hacl(H,H,_,_).
+
+  /* configuration information of fileServer */
+  networkServiceInfo(fileServer, mountd, rpc, 100005, root).
+  nfsExportInfo(fileServer, '/export', _anyAccess, workStation).
+  nfsExportInfo(fileServer, '/export', _anyAccess, webServer).
+  vulExists(fileServer, vulID, mountd).
+  vulProperty(vulID, remoteExploit, privEscalation).
+  localFileProtection(fileServer, root, _, _).
+
+  /* configuration information of webServer */
+  vulExists(webServer, 'CAN-2002-0392', httpd).
+  vulProperty('CAN-2002-0392', remoteExploit, privEscalation).
+  networkServiceInfo(webServer , httpd, tcp , 80 , apache).
+
+  /* configuration information of workStation */
+  nfsMounted(workStation, '/usr/local/share', fileServer, '/export', read).
+  """
+  # write input file to working directory if it doesn't exist
+  outfile = SEP.join((FLAGS.base_dir, FLAGS.input_file))
+  logging.debug(('creating input file: %s') % outfile)
+  if not pathlib.Path(outfile).exists():
+    with open(outfile, 'w+') as file:
+      file.write(input_p)
+    logging.debug(('creating input file: %s') % outfile)
 
 def _RunMulVal():
 
