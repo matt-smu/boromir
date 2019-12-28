@@ -1,40 +1,17 @@
-# import matplotlib.pyplot as plt
-# import numpy as np
+
+from absl import app
+from absl import flags
+
 from itertools import chain
 from jinja2 import Template
-import argparse
-import re
-
-import os
-import platform
-import sys
-import pathlib
-
 import logging
-
-# logging.basicConfig(filename='cat-dog.log',level=logging.DEBUG)
-logging.basicConfig(level=logging.DEBUG,
-    format="%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %("
-           "message)s",
-    handlers=[logging.FileHandler("{0}/{1}.log".format('.', 'cat-dog')),
-      logging.StreamHandler()])
-
-import jupyter_core
-
-# from owlready2 import *
-from stix2 import *
-from stix2 import FileSystemSource as fs
-from stix2 import Filter
-from stix2.utils import get_type_from_id
-
-# from pyxsb import pyxsb_start_session, pyxsb_end_session, pyxsb_command,
-# pyxsb_query, XSBFunctor, XSBVariable, xsb_to_json, json_to_xsb
-
+import os
+import pathlib
 from pyxsb import *
 
-from genTransMatrix import *
+from py_mulval import log_util
 
-sys.path.append('..')
+FLAGS = flags.FLAGS
 
 SEP = os.path.sep
 
@@ -44,7 +21,7 @@ XSB_ARCH_DIR = '/opt/apps/xsb/XSB/config/x86_64-unknown-linux-gnu'
 ## port MulVals graph_gen.sh to python
 
 # MulVal Install Files
-# MULVALROOT = '/opt/mulval'
+MULVALROOT = '/opt/mulval'
 MULVALROOT = '/opt/projects/diss/mulval/mulval'
 INTERACTIONRULES = SEP.join((MULVALROOT, 'kb/interaction_rules.P'))
 INTERACTIONRULES_CVSS = SEP.join(
@@ -57,28 +34,56 @@ ATTACK_GRAPH_BIN = SEP.join((MULVALROOT, "bin/attack_graph"))
 # BASE_DIR = '/opt/projects/diss/jupyter_nbs/mine'
 # INPUT_FILE_NAME = 'single_host.P'
 # INPUT_BASE_NAME = os.path.splitext(INPUT_FILE_NAME)[0]
-TRACE_MODE = 'completeTrace2'
-BASE_DIR = '/opt/projects/diss/py-mulval'
-DATA_DIR = SEP.join((BASE_DIR, 'data'))
-WORKING_DIR = SEP.join((DATA_DIR, 'test_005_single_host'))
-MODELS_DIR = SEP.join((DATA_DIR, 'models'))
-RULES_DIR = SEP.join((DATA_DIR, 'rules'))
-# INPUT_FILE = SEP.join((MODELS_DIR, INPUT_FILE_NAME))
-
-RUNNING_RULES_NAME = SEP.join((WORKING_DIR, 'running_rules.P'))
-ENV_FILE_NAME = SEP.join((WORKING_DIR, 'environment.P'))
-RUN_FILE_NAME = SEP.join((WORKING_DIR, 'run.P'))
-
-_RULE_FILES = list()
-_RULE_FILES_ADDITIONAL = list()
+# TRACE_MODE = 'completeTrace2'
+# BASE_DIR = '/opt/projects/diss/py-mulval'
+# DATA_DIR = SEP.join((BASE_DIR, 'data'))
+# WORKING_DIR = SEP.join((DATA_DIR, 'test_005_single_host'))
+# MODELS_DIR = SEP.join((DATA_DIR, 'models'))
+# RULES_DIR = SEP.join((DATA_DIR, 'rules'))
+# # INPUT_FILE = SEP.join((MODELS_DIR, INPUT_FILE_NAME))
+#
+RUNNING_RULES_NAME = 'running_rules.P'
+ENV_FILE_NAME = 'environment.P'
+RUN_FILE_NAME = 'run.P'
+#
+# _RULE_FILES = list()
+# _RULE_FILES_ADDITIONAL = list()
 
 # Output vars
-RESULTS_DIR = SEP.join((WORKING_DIR, 'output'))
+# RESULTS_DIR = SEP.join((WORKING_DIR, 'output'))
 # MATRIX_FILE_NAME = INPUT_BASE_NAME + '.csv'
 # MATRIX_FILE = SEP.join((RESULTS_DIR, MATRIX_FILE_NAME))
 
 
 # os.chdir(WORKING_DIR)
+
+#####
+# MulVal Flags
+#####
+flags.DEFINE_multi_string('rule', None, 'add rule file(s).', short_name='r')
+flags.DEFINE_multi_string('additional', None, 'add additional rule file(s).',
+                          short_name='a')
+flags.DEFINE_multi_string('constraint', None, 'add constraint file(s).',
+                          short_name='c')
+flags.DEFINE_multi_string('goal', None, 'add goal(s).', short_name='g')
+flags.DEFINE_multi_string('dynamic', None, 'add dynamic file(s).',
+                          short_name='d')
+flags.DEFINE_bool('visualize', True, 'create viz (implies csv output).',
+                  short_name='V')
+flags.DEFINE_bool('write_csv', True, 'Write CSV output', short_name='l')
+flags.DEFINE_string('input_file', None, 'input file', short_name='i')
+flags.DEFINE_bool('arclabel', True, 'arclabel')
+flags.DEFINE_bool('reverse', True, 'reverse')
+flags.DEFINE_bool('simple', True, 'simple')
+flags.DEFINE_bool('metric', False, 'metric')
+flags.DEFINE_bool('sat', True, 'SAT', short_name='s')
+flags.DEFINE_bool('satgui', True, 'SAT GUI', short_name='sg')
+flags.DEFINE_string('trace', 'completeTrace2', 'trace option', short_name='t')
+flags.DEFINE_bool('trim', True, 'trim', short_name='tr')
+flags.DEFINE_bool('trimdom', True, 'trimdom', short_name='td')
+flags.DEFINE_bool('cvss', True, 'cvss')
+flags.DEFINE_bool('ma', True, 'metric artifacts')
+
 
 
 class attack_graph(object):
@@ -115,9 +120,8 @@ class attack_graph(object):
     """
     my_env = os.environ.copy()
     # my_env["MULVAL_HOME"] = MULVALROOT
-    my_env[
-      "MULVALROOT"] = MULVALROOT  # @TODO this is getting set to $MULVAL_HOME
-    # (literal) somewhere
+    # @TODO this is getting set to $MULVAL_HOME (literal) somewhere
+    my_env["MULVALROOT"] = MULVALROOT
     cmd = MULVALROOT + '/utils/render.sh'
     # subprocess.Popen(cmd, env=my_env, shell=True)
     # subprocess.call([MULVALROOT+'/utils/render.sh'], env=my_env, shell=True)
@@ -150,24 +154,24 @@ class graph_gen(object):
     super(graph_gen, self)
     self._input_file = INPUT_FILE if 'input_file' not in kwargs else kwargs.get(
         'input_file')
-    self._rule_files = kwargs.get('rulefile')
-    print(kwargs.keys())
+    # self._rule_files = FLAGS.rule  # kwargs.get('rulefile')
+    # self.
     self._MULVALROOT = MULVALROOT if 'MULVALROOT' not in kwargs else kwargs.get(
       'MULVALROOT')
     self._type = None if 'type' not in kwargs else kwargs.get('type')  #
     # 'run' | 'environment' includes the mulval_run line
-    self._tracemode = TRACE_MODE if 'tracemode' not in kwargs else kwargs.get(
-        'tracemode')
+    self._tracemode = FLAGS.trace
     self._dynamic_file = None
     self._trim = False  # True is --trim | -tr flags passed
     self._trim_rules = MULVALROOT + '/src/analyzer/advances_trim.P'
     self._no_trim_rules = MULVALROOT + '/src/analyzer/advances_notrim.P'
     self._cvss = False  # original script tests if this is zero (-z $CVSS) so
     # this is probably a path not bool
-    self._goal = None  # goal passed in a flag
+    self._goal = FLAGS.goal or None  # goal passed in a flag
+    self.rule_files = list()
+    self.rule_files_additional= list()
     # template this out for later
     # vars:
-
     self.ts = """:-['{{ _MULVALROOT }}/lib/libmulval'].  % start base run script
 :-['{{ _MULVALROOT }}/src/analyzer/translate'].
 :-['{{ _MULVALROOT }}/src/analyzer/attack_trace'].
@@ -230,31 +234,32 @@ class graph_gen(object):
     _cvss = self._cvss
     _goal = self._goal
 
-    logging.info('writing rule file %s...' % RUNNING_RULES_NAME)
-    _RULE_FILES.append(INTERACTIONRULES)  # @TODO cvss and ma checks
+    logging.info('writing rule files to working directory %s...' % FLAGS.base_dir)
+    self.rule_files.append(INTERACTIONRULES)  # @TODO cvss and ma checks
     # append RULES_DIR to rule files path... @TODO expect full path for each?
-    rulefiles = (SEP.join((RULES_DIR, file)) for file in self._rule_files)
-    _RULE_FILES.append(*rulefiles)
-    logging.debug('rule files: %s' % _RULE_FILES)
-    logging.debug('additional rule files: %s' % _RULE_FILES_ADDITIONAL)
-    self.writeRulesFile(_RULE_FILES, _RULE_FILES_ADDITIONAL)
+    rulefiles = list((SEP.join((FLAGS.rules_dir, file)) for file in FLAGS.rule))
+    logging.debug('rulefiles to write from: %s ' % list(rulefiles))
+    self.rule_files.append(*rulefiles)
+    logging.debug('rule files: %s' % self.rule_files)
+    logging.debug('additional rule files: %s' % self.rule_files_additional)
+    self.writeRulesFile(self.rule_files, self.rule_files_additional)
 
-    logging.info('writing environment file %s...' % ENV_FILE_NAME)
+    logging.info('writing environment file %s...' % SEP.join((FLAGS.base_dir, ENV_FILE_NAME)))
     tm = Template(self.ts)
     logging.debug('locals: %s' % locals())
-    self.writeFile(ENV_FILE_NAME, tm.render(locals()))
+    self.writeFile(SEP.join((FLAGS.base_dir, ENV_FILE_NAME)), tm.render(locals()))
 
-    logging.info('writing run file %s...' % RUN_FILE_NAME)
-    self.writeFile(RUN_FILE_NAME, tm.render(locals(), _type='run'))
+    logging.info('writing run file %s...' % SEP.join((FLAGS.base_dir, RUN_FILE_NAME)))
+    self.writeFile(SEP.join((FLAGS.base_dir, RUN_FILE_NAME)), tm.render(locals(), _type='run'))
 
     logging.info('running mulval in xsb...')
-    os.chdir(WORKING_DIR)
+    os.chdir(FLAGS.base_dir)
     self.runMulVal()
 
   def writeRulesFile(self, _RULE_FILES, _RULE_FILES_ADDITIONAL):
     """@TODO needs logic for placement, tabling, validation"""
 
-    with open(RUNNING_RULES_NAME, 'w+') as outfile:
+    with open(SEP.join((FLAGS.base_dir,RUNNING_RULES_NAME)), 'w+') as outfile:
       for fname in chain(_RULE_FILES, _RULE_FILES_ADDITIONAL):
         with open(fname, 'r') as infile:
           outfile.write(infile.read())
@@ -319,53 +324,53 @@ class graph_gen(object):
     pyxsb_end_session()
 
 
-def parseFlags():
-  arg_parser = argparse.ArgumentParser(description='Process MulVal flags')
-  arg_parser.add_argument('--rulefile', '-r', action='append',
-                          # allow multiple rule files
-                          help='add rulefile(s) -r rulefile.txt')
-  arg_parser.add_argument('--additional', '-a', action='append',
-                          # allow multiple rule files
-                          help='add additional rulefile(s) -a '
-                               'anotherrulefile.txt')
-  arg_parser.add_argument('--constraint', '-c', action='append',
-                          # allow multiple rule files
-                          help='add constraint files(s) -c constraintfile.txt')
-  arg_parser.add_argument('--goal', '-g', action='append',
-                          # allow multiple goals
-                          help='add goals -g goal')
-  arg_parser.add_argument('--dynamic', '-d', action='append',
-                          # allow multiple dynamic files
-                          help='add dynamic files -d dynamicfile.txt')
-  arg_parser.add_argument('--visualize', '-v',
-                          help='create viz (implies csv output)',
-                          action='store_true')
-  arg_parser.add_argument('-l', help='CSV OUTPUT', action='store_true')
-  arg_parser.add_argument('--input_file', '-i', help='input file')
-  #     arg_parser.add_argument('viz_options', choices=['--arclabel',
-  #     '--reverse', '--simple', '--nometric']), action='append'
-  arg_parser.add_argument('--arclabel', help='viz_options', action='store_true')
-  arg_parser.add_argument('--reverse', help='viz_options', action='store_true')
-  arg_parser.add_argument('--simple', help='viz_options', action='store_true')
-  arg_parser.add_argument('--nometric', help='viz_options', action='store_true')
-
-  arg_parser.add_argument('--sat', '-s', help='SAT', action='store_true')
-  arg_parser.add_argument('--satgui', '-sg', help='SAT GUI',
-                          action='store_true')
-  arg_parser.add_argument('--trace', '-t', help='trace option')
-  arg_parser.add_argument('--trim', '-tr', help='trim option',
-                          action='store_true')
-  arg_parser.add_argument('--trimdom', '-td', help='trimdom option',
-                          action='store_true')
-  arg_parser.add_argument('--cvss', help='cvss option', action='store_true')
-  arg_parser.add_argument('-ma', help='metric artifacts', action='store_true')
-  ### @TODO figure out what all these do...
-
-  # args, other_args = arg_parser.parse_known_args()
-  # print('args: ', args)
-  # print('other args: ', other_args)
-
-  return arg_parser.parse_known_args()
+# def parseFlags():
+#   arg_parser = argparse.ArgumentParser(description='Process MulVal flags')
+#   arg_parser.add_argument('--rulefile', '-r', action='append',
+#                           # allow multiple rule files
+#                           help='add rulefile(s) -r rulefile.txt')
+#   arg_parser.add_argument('--additional', '-a', action='append',
+#                           # allow multiple rule files
+#                           help='add additional rulefile(s) -a '
+#                                'anotherrulefile.txt')
+#   arg_parser.add_argument('--constraint', '-c', action='append',
+#                           # allow multiple rule files
+#                           help='add constraint files(s) -c constraintfile.txt')
+#   arg_parser.add_argument('--goal', '-g', action='append',
+#                           # allow multiple goals
+#                           help='add goals -g goal')
+#   arg_parser.add_argument('--dynamic', '-d', action='append',
+#                           # allow multiple dynamic files
+#                           help='add dynamic files -d dynamicfile.txt')
+#   arg_parser.add_argument('--visualize', '-v',
+#                           help='create viz (implies csv output)',
+#                           action='store_true')
+#   arg_parser.add_argument('-l', help='CSV OUTPUT', action='store_true')
+#   arg_parser.add_argument('--input_file', '-i', help='input file')
+#   #     arg_parser.add_argument('viz_options', choices=['--arclabel',
+#   #     '--reverse', '--simple', '--nometric']), action='append'
+#   arg_parser.add_argument('--arclabel', help='viz_options', action='store_true')
+#   arg_parser.add_argument('--reverse', help='viz_options', action='store_true')
+#   arg_parser.add_argument('--simple', help='viz_options', action='store_true')
+#   arg_parser.add_argument('--nometric', help='viz_options', action='store_true')
+#
+#   arg_parser.add_argument('--sat', '-s', help='SAT', action='store_true')
+#   arg_parser.add_argument('--satgui', '-sg', help='SAT GUI',
+#                           action='store_true')
+#   arg_parser.add_argument('--trace', '-t', help='trace option')
+#   arg_parser.add_argument('--trim', '-tr', help='trim option',
+#                           action='store_true')
+#   arg_parser.add_argument('--trimdom', '-td', help='trimdom option',
+#                           action='store_true')
+#   arg_parser.add_argument('--cvss', help='cvss option', action='store_true')
+#   arg_parser.add_argument('-ma', help='metric artifacts', action='store_true')
+#   ### @TODO figure out what all these do...
+#
+#   # args, other_args = arg_parser.parse_known_args()
+#   # print('args: ', args)
+#   # print('other args: ', other_args)
+#
+#   return arg_parser.parse_known_args()
 
 
 def setup_test_dir(*args, **kwargs):
