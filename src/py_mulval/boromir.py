@@ -706,9 +706,9 @@ def DoRunPhase(spec, collector, timer):
         s.metadata['run_number'] = run_number
 
     # Add boot time metrics on the first run iteration.
-    if run_number == 0 and (FLAGS.boot_samples or
-                            spec.name == cluster_boot_benchmark.BENCHMARK_NAME):
-      samples.extend(cluster_boot_benchmark.GetTimeToBoot(spec.vms))
+    # if run_number == 0 and (FLAGS.boot_samples or
+    #                         spec.name == cluster_boot_benchmark.BENCHMARK_NAME):
+    #   samples.extend(cluster_boot_benchmark.GetTimeToBoot(spec.vms))
 
     if FLAGS.record_lscpu:
       samples.extend(_CreateLscpuSamples(spec.vms))

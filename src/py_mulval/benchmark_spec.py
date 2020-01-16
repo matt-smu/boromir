@@ -708,10 +708,10 @@ class BenchmarkSpec(object):
   def GetSamples(self):
     """Returns samples created from benchmark resources."""
     samples = []
-    if self.container_cluster:
-      samples.extend(self.container_cluster.GetSamples())
-    if self.container_registry:
-      samples.extend(self.container_registry.GetSamples())
+    # if self.container_cluster:
+    #   samples.extend(self.container_cluster.GetSamples())
+    # if self.container_registry:
+    #   samples.extend(self.container_registry.GetSamples())
     return samples
 
   def StartBackgroundWorkload(self):

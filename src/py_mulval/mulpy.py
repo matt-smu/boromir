@@ -346,15 +346,15 @@ def Main():
   log_util.ConfigureBasicLogging()
   logging.info('Basic Logging configured.')
   _ParseFlags()
-  if FLAGS.helpmatch:
-    _PrintHelp(FLAGS.helpmatch)
-    return 0
-  if FLAGS.helpmatchmd:
-    _PrintHelpMD(FLAGS.helpmatchmd)
-    return 0
+  # if FLAGS.helpmatch:
+  #   _PrintHelp(FLAGS.helpmatch)
+  #   return 0
+  # if FLAGS.helpmatchmd:
+  #   _PrintHelpMD(FLAGS.helpmatchmd)
+  #   return 0
   SetupMulpy()
-  collector = publisher.SampleCollector()
-  PublishRunStartedSample()
+  # collector = publisher.SampleCollector()
+  # PublishRunStartedSample()
   # os.chdir(FLAGS.base_dir)
   _RunMulVal()
   _GenTransMatrix()

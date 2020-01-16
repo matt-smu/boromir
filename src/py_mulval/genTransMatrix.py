@@ -60,6 +60,11 @@ class AttackGraph(nx.MultiDiGraph):
             self.inputDir = kwargs['inputDir']
             logging.debug(('inputDir: ', self.inputDir))
 
+        self.outputDir = self.inputDir #os.cwd()
+        if 'outputDir' in kwargs.keys():
+            self.outputDir = kwargs['outputDir']
+            logging.debug(('output: ', self.outputDir))
+
         with open(self.scriptsDir + '/' + SCORE_DICT) as f:
             # logging.debug((f.readlines()))
             self.conf_override = yaml.safe_load(f)
@@ -123,7 +128,7 @@ class AttackGraph(nx.MultiDiGraph):
 
         A = nx.nx_agraph.to_agraph(self)
         A.layout('dot', args='-Nfontsize=10 -Nwidth=".2" -Nheight=".2" -Nmargin=0 -Gfontsize=8')
-        A.draw(self.inputDir + '/' + outfilename)
+        A.draw(self.outputDir + '/' + outfilename)
         plt.show()
 
     def __updateAG(self):
@@ -688,7 +693,7 @@ class AttackGraph(nx.MultiDiGraph):
 
         # filename = self.inputDir + '/' + self.outfileName + '.csv'
         if not filename:
-            filename = self.inputDir + '/' + self.name + '.csv'
+            filename = self.outputDir + '/' + self.name + '.csv'
         logging.info(('Writing transition matrix to: ', filename))
         pandas.DataFrame(tmatrix.todense()).round(decimals=2).to_csv(filename, header=header, index=False)
 

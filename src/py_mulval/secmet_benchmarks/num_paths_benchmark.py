@@ -15,14 +15,16 @@
 """Run struct_secmet."""
 import os
 import pathlib
+from networkx.readwrite import json_graph
+import json
 
 from py_mulval import configs
+from py_mulval import data
 from py_mulval import flags
 from py_mulval import genTransMatrix
 from py_mulval import mulpy
 from py_mulval import py_mulval
 from py_mulval import sample
-
 from py_mulval import vm_util
 
 FLAGS = flags.FLAGS
@@ -76,14 +78,16 @@ def Run(benchmark_spec):
     ## genTransMatrix
     ####
     # inputDir = FLAGS.base_dir
-    inputDir = vm_util.GetTempDir()
+    inputDir = data.ResourcePath('attack_graphs')
+    outputDir = vm_util.GetTempDir()
     outfileName = os.path.splitext(FLAGS.input_file)[0]  # 'input'
-    scriptsDir = '/opt/projects/diss/py-mulval/src/py_mulval/data/secmet'
+    scriptsDir = data.ResourcePath('secmet')
     # pathlib.Path(FLAGS.output_dir).mkdir(parents=True, exist_ok=True)
 
     opts = dict()
     opts['scriptsDir'] = scriptsDir
     opts['inputDir'] = inputDir
+    opts['outputDir'] = outputDir
     opts['outfileName'] = outfileName
     opts['PLOT_INTERMEDIATE_GRAPHS'] = True
     matrix_file = vm_util.PrependTempDir(outfileName + '.csv')
@@ -93,14 +97,15 @@ def Run(benchmark_spec):
     A = genTransMatrix.AttackGraph(**opts)
     A.name = outfileName
     A.plot2(outfilename=A.name + '_001_orig.png')
-    tmatrix = A.getTransMatrix(**opts).dumps()
+    tmatrix = A.getTransMatrix(**opts)
+    # ag_json = A.dumps()
     # logging.debug('Created weighted transition matrix:\n %s' % tmatrix)
 
     metadata = {# The meta data defining the environment
         'cite_key': CITATION_SHORT,
         'citation':         CITATION_FULL,
-        'attack_graph':   A.name,
-        'transition_matrix':   tmatrix,}
+        'attack_graph':   json.dumps(json_graph.node_link_data(A)),
+        'transition_matrix':   json.dumps(tmatrix.todense().tolist()),}
     return sample.Sample('Number of Paths', 5, 'paths', metadata)
   results.append(_RunTest())
   print(results)
