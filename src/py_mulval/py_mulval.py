@@ -9,7 +9,7 @@ import os
 import pathlib
 from pyxsb import *
 
-from py_mulval import log_util
+# from py_mulval import log_util
 
 FLAGS = flags.FLAGS
 

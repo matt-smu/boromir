@@ -1,0 +1,8 @@
+num_paths:
+    flags:
+        input_file: single_host.P
+        rule: local_exploit_rules.P
+        models_dir: /opt/projects/diss/py-mulval/data/models
+        rules_dir: /opt/projects/diss/py-mulval/data/rules
+        data_dir: /opt/projects/diss/py-mulval/data
+        base_dir: /opt/projects/diss/py-mulval
