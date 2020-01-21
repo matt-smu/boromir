@@ -1,4 +1,4 @@
-mttf:
+num_paths:
     flags:
         input_file: single_host.P
         rule: local_exploit_rules.P

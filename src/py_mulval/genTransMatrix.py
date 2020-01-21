@@ -1,39 +1,31 @@
 #!/usr/bin/env python
+import logging
 import os
 import re
 import sys
-import logging
-from collections import Set
-
-import yaml
-import scipy
-import pandas
-import csv
-
+import warnings
 from copy import deepcopy
 
-import networkx as nx
+import MySQLdb
 import matplotlib
-import graphviz as gv
+import matplotlib.pyplot as plt
+import networkx as nx
+import pandas
+import scipy
+import yaml
+from networkx.drawing.nx_agraph import read_dot
+
+from py_mulval import flags
 
 matplotlib.use('TkAgg')
-import matplotlib.pyplot as plt
-# from networkx.drawing.nx_pydot import read_dot
-from networkx.drawing.nx_agraph import read_dot, write_dot, graphviz_layout
-
-from networkx.drawing import nx_agraph
-
-import pygraphviz
-
-import MySQLdb
-
-import warnings
 
 warnings.simplefilter('ignore', scipy.sparse.SparseEfficiencyWarning)
 ARCS = 'ARCS.CSV'
 VERTS = 'VERTICES.CSV'
 AG_DOT = 'AttackGraph.dot'
 SCORE_DICT = 'scoreDict.yml'
+
+FLAGS = flags.FLAGS
 
 exploitDict = {}
 conf_override = {}
@@ -160,6 +152,8 @@ class AttackGraph(nx.MultiDiGraph):
         return labels
 
     def getCVSSscore(self, cveid):
+        if FLAGS.secmet_fix_cvss_score:
+            return FLAGS.secmet_fix_cvss_score
         score = 'null'  # the score to return
         con = None
         logging.debug(('looking for cveid: ', cveid))
@@ -200,15 +194,25 @@ class AttackGraph(nx.MultiDiGraph):
 
     def getORnodes(self):
         orNodes = [n for n, v in self.nodes(data=True) if v['type'] == 'OR']
-        logging.debug((orNodes))
+        # logging.debug((orNodes))
         return orNodes
 
     def getLEAFnodes(self):
         leafNodes = [n for n, v in self.nodes(data=True) if v['type'] == 'LEAF']
-        logging.debug((leafNodes))
+        # logging.debug((leafNodes))
         return leafNodes
 
+    def getOriginnodesByAttackerLocated(self):
+        ONodes = [n for n, v in self.nodes(data=True) if 'attackerLocated' in v['label']]
+        # logging.debug((ONodes))
+        return ONodes
+
+    def getTargetByNoEgressEdges(self):
+        targetNodes = [n for n, v in self.nodes(data=True) if len(self.out_edges(n, keys=True, data=True)) == 0]
+        return targetNodes
+
     def setANDscores(self):
+        """Sets the AND node score to the matching CVSS base score"""
 
         andNodes = self.getANDnodes()
         for andNode in andNodes:
@@ -223,8 +227,11 @@ class AttackGraph(nx.MultiDiGraph):
                 # logging.debug(('setting node to default exploit score: ', self.nodes[andNode]))
                 for xr in self.exploit_rules.keys():
                     if xr in self.nodes[andNode]['label']:
-                        self.nodes[andNode]['exploit_rule_score'] = self.exploit_rules[xr]
-                        # logging.debug(('setting node to default exploit score: ', self.nodes[andNode]))
+                        if FLAGS.secmet_fix_cvss_score:
+                            self.nodes[andNode]['exploit_rule_score'] = FLAGS.secmet_fix_cvss_score
+                        else:
+                            self.nodes[andNode]['exploit_rule_score'] = self.exploit_rules[xr]
+                            # logging.debug(('setting node to default exploit score: ', self.nodes[andNode]))
 
                 # look for cvss score in leafs
                 leafPreds = [n for n in self.predecessors(andNode) if self.nodes[n]['type'] == 'LEAF']
@@ -252,6 +259,7 @@ class AttackGraph(nx.MultiDiGraph):
                     self.setEdgeScore(u2, v2, k2, self.nodes[andNode]['exploit_rule_score'])
 
     def scoreANDs(self):
+        """Normalizes the score in [0..1] with adjacent incoming node scores"""
         andNodes = self.getANDnodes()
         logging.debug(('scoreANDs remaining AND nodes: ', andNodes))
         for a in andNodes:
@@ -472,6 +480,7 @@ class AttackGraph(nx.MultiDiGraph):
     def setEdgeScore(self, u, v, k, score):
 
         self[u][v][k]['score'] = score
+        self[u][v][k]['weight'] = score
         self[u][v][k]['label'] = round(score, 2)
 
     def setEdgeScores(self, **kwargs):
@@ -531,6 +540,65 @@ class AttackGraph(nx.MultiDiGraph):
             logging.debug(('too many selfloop edges!'))
         else:
             return 0  # default key
+
+    def getReducedGraph(self, *args, **kwargs):
+        # tgraph = tgraph
+        tgraph = deepcopy(self)
+
+        # logging.debug(('tgraph root node: ', tgraph.has_node('0')))
+        tgraph.setOrigin()
+        # logging.debug(('tgraph root node: ', tgraph.has_node('0')))
+        tgraph.plot2(outfilename=self.name + '_000.6_addOrigin.png')
+
+        # 1. set AND node exploit score
+        #    either default value of AND text or CVSS lookup
+        tgraph.setANDscores()
+        tgraph.plot2(outfilename=self.name + '_001_setANDscores.png')
+
+        # 2. remove LEAF nodes after scores applied
+        tgraph.pruneLEAFS()
+        logging.debug(('Removing dead nodes: ', list(nx.isolates(tgraph))))
+        tgraph.remove_nodes_from(list(nx.isolates(tgraph)))
+        tgraph.plot2(outfilename=self.name + '_002_pruneLEAFs.png')
+
+        # 3. Join edges passing through this and (multi-hop, no exploit)
+        tgraph.coalesceANDnodes()
+        logging.debug(('Removing dead nodes: ', list(nx.isolates(tgraph))))
+        tgraph.remove_nodes_from(list(nx.isolates(tgraph)))
+        tgraph.plot2(outfilename=self.name + '_003_coalesceANDs.png')
+
+        # 4. push AND exploit_score down to child or score dicts
+        tgraph.scoreANDs()
+        logging.debug(('Removing dead nodes: ', list(nx.isolates(tgraph))))
+        tgraph.remove_nodes_from(list(nx.isolates(tgraph)))
+        tgraph.plot2(outfilename=self.name + '_004_scoreANDs.png')
+
+        # 5. remove or nodes with empty score dict
+        tgraph.coalesceORnodes()
+        logging.debug(('Removing dead nodes: ', list(nx.isolates(tgraph))))
+        tgraph.remove_nodes_from(list(nx.isolates(tgraph)))
+        tgraph.plot2(outfilename=self.name + '_005_coalesceORs.png')
+
+        # # 6. add root note for entry handle  # # logging.debug(('tgraph
+        # root node: ', tgraph.has_node('0')))  # tgraph.setOrigin()  # #
+        # logging.debug(('tgraph root node: ', tgraph.has_node('0')))  #
+        # tgraph.plot2(outfilename=self.name + '_006_addOrigin.png')
+
+        return tgraph
+
+    def scoreTGraph(self, *args, **kwargs):
+
+        # 6.5 add edge scores
+        # breaking off to support different weighting strategies
+        self.setEdgeScores()
+        self.plot2(outfilename=self.name + '_006_scoreEdges.png')
+
+    def weighTGraph(self, *args, **kwargs):
+        # 7. add edge weights
+        self.setEdgeWeights()
+        self.plot2(outfilename=self.name + '_007_weighEdges.png')
+
+
 
     def getTransMatrix(self, *args, **kwargs):
         # tgraph = tgraph
@@ -598,7 +666,9 @@ class AttackGraph(nx.MultiDiGraph):
 
         tgraph.remove_node(tgraph.origin)
 
-        tmatrix = tgraph.convertTMatrix()
+        tmatrix, nodelist = tgraph.convertTMatrix()
+
+
 
         # logging.debug((type(tmatrix)))
         # tmatrix.setdiag(1)
@@ -617,9 +687,9 @@ class AttackGraph(nx.MultiDiGraph):
         print(outfile)
         # logging.debug(('header type: ', type(tgraph.node_list), tgraph.node_list))
         logging.debug(('header type: ', type(tgraph.getNodeList()), tgraph.getNodeList()))
-        self.writeTmatrix(header=tgraph.getNodeList(), tmatrix=tmatrix, filename=outfile)
+        self.writeTmatrix(header=nodelist, tmatrix=tmatrix, filename=outfile)
 
-        return tmatrix
+        return tgraph, tmatrix, nodelist
 
     def getNodeList(self):
         """
@@ -627,6 +697,7 @@ class AttackGraph(nx.MultiDiGraph):
         Currently just getting sources in the front and sinks at the end... may need to be smarter about this
         :return: ordered nodelist
         """
+
         node_list = []
         source = None
         sink = None
@@ -663,7 +734,7 @@ class AttackGraph(nx.MultiDiGraph):
 
         # node_list.append(sink)
         logging.debug(('added sink to nodelist', sink, node_list, self.nodes(), len(node_list), len(self.nodes())))
-        assert (len(node_list) == len(self.nodes()))
+        # assert (len(node_list) == len(self.nodes()))
 
         return node_list
 
@@ -682,7 +753,7 @@ class AttackGraph(nx.MultiDiGraph):
         # logging.debug((tmatrix))
         logging.debug((tmatrix.todense()))
 
-        return tmatrix
+        return tmatrix, nodelist
 
         # logging.debug(('node | in_degree | out_degree: ', n, ' | ', tgraph.in_degree(n), ' | ', tgraph.out_degree(n)))
         # logging.debug(('tgraph', n, v))

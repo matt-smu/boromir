@@ -1,4 +1,4 @@
-mttf:
+shortest_attack_path:
     flags:
         input_file: single_host.P
         rule: local_exploit_rules.P

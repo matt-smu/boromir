@@ -378,7 +378,7 @@ class PrettyPrintStreamPublisher(SamplePublisher):
     result = six.StringIO()
     dashes = '-' * 25
     result.write('\n' + dashes +
-                 'PerfKitBenchmarker Results Summary' +
+                 'BOROMIR Results Summary' +
                  dashes + '\n')
 
     if not samples:
@@ -449,7 +449,7 @@ class LogPublisher(SamplePublisher):
 
   def PublishSamples(self, samples):
     data = [
-        '\n' + '-' * 25 + 'PerfKitBenchmarker Complete Results' + '-' * 25 +
+        '\n' + '-' * 25 + 'BOROMIR Complete Results' + '-' * 25 +
         '\n']
     for sample in samples:
       data.append('%s\n' % self._pprinter.pformat(sample))

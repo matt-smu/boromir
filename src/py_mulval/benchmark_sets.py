@@ -46,13 +46,12 @@ BENCHMARK_SETS = {
         MESSAGE: ('The standard_set is a community agreed upon set of '
                   'benchmarks to measure security performance.'),
         BENCHMARK_LIST: [
-            # 'struct_secmet',
             'num_paths',
             # 'avg_path_length',
-            # 'epl',
+            'shortest_attack_path',
             # 'np',
             # 'mttr',
-            # 'mttf',
+            'mttf',
         ]
     },
     'ag_based_metric_set': {

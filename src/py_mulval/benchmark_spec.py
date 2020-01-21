@@ -162,7 +162,8 @@ class BenchmarkSpec(object):
     # self.vpngws = {}  # dict of vpn gw's
     # self.vpngws_lock = threading.Lock()
     # self.vpns_lock = threading.Lock()
-    self.ag_path = None
+
+    self.attack_graph = None
 
     # Modules can't be pickled, but functions can, so we store the functions
     # necessary to run the benchmark.

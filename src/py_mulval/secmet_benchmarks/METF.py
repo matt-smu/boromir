@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Run struct_secmet."""
+"""Run Mean Effort To Failure benchmark."""
 import os
 import pathlib
 import networkx
@@ -30,10 +30,10 @@ from py_mulval import vm_util
 
 FLAGS = flags.FLAGS
 
-BENCHMARK_NAME = 'num_paths'
+BENCHMARK_NAME = 'metf'
 BENCHMARK_CONFIG = """
-num_paths:
-  description: Run num_paths metric
+metf:
+  description: Run metf metric
   flags:
     input_file: single_host_1.P
     rule: local_exploit_rules.P
@@ -45,13 +45,10 @@ num_paths:
   # vm_groups:
 """
 
-CITATION_SHORT = 'Dacier1996'
-CITATION_FULL = '''[1]Marc Dacier, Yves Deswarte, and Mohamed Kaâniche. 1996. Quantitative assessment of operational security: Models and tools. Information Systems Security, ed. by SK Katsikas and D. Gritzalis, London, Chapman & Hall (1996), 179–86.
+CITATION_SHORT = 'Ortalo1999'
+CITATION_FULL = '''[1]Rodolphe Ortalo, Yves Deswarte, and Mohamed Kaâniche. 1999. Experimenting with quantitative evaluation tools for monitoring operational security. IEEE Transactions on Software Engineering 25, 5 (1999), 633–650.
 '''
 
-# flags.DEFINE_string('cite_key', None, CITATION_SHORT)
-# flags.DEFINE_string('cite_long', None, CITATION_FULL)
-flags.DEFINE_string('shortest_ag_path', None, 'use this attack graph')
 
 
 def GetConfig(user_config):
@@ -63,7 +60,7 @@ def Prepare(benchmark_spec):
 
 
 def Run(benchmark_spec):
-  """Collect Num_Paths Metrics for an attack graph
+  """Collect METF Metrics for an attack graph
 
   Args:
     benchmark_spec: The benchmark specification. Contains all data that is
@@ -76,13 +73,6 @@ def Run(benchmark_spec):
 
   def _RunTest():
 
-    #####
-    ## genTransMatrix
-    ####
-    # inputDir = FLAGS.base_dir
-
-
-    # A = AttackGraph(inputDir=inputDir, scriptsDir=scriptsDir, opts=opts
     if not benchmark_spec.attack_graph:
       inputDir = data.ResourcePath('attack_graphs')
       outputDir = vm_util.GetTempDir()
@@ -105,34 +95,36 @@ def Run(benchmark_spec):
     A.name = outfileName
     if opts['PLOT_INTERMEDIATE_GRAPHS']:
       A.plot2(outfilename=A.name + '_001_orig.png')
-    tgraph, tmatrix, nodelist = A.getTransMatrix(**opts)
+    # tgraph, tmatrix, nodelist = A.getTransMatrix(**opts)
+    tgraph = A.getReducedGraph(**opts)
+    tgraph.scoreTGraph(**opts)
+    tgraph.weighTGraph(**opts)
+    tgraph.remove_node(tgraph.origin)
+    tmatrix, nodelist = tgraph.convertTMatrix()
+    tm = tmatrix.todense()
 
-    # nodelist_pre_reduce = list(networkx.algorithms.dag.lexicographical_topological_sort(A))
+    # mttf = sum(1/\lambda)
+    mttf = 1 / (1 - np.diag(tm)[:-1])
+    # print(mttf, sum(mttf))
 
-    origin = list(A.getOriginnodesByAttackerLocated())[0]
-    target = list(A.getTargetByNoEgressEdges())[0]
-    all_paths_before = list(networkx.all_simple_paths(A,origin,target))
+    print(tm)
+    # mc = pydtmc.markov_chain.MarkovChain(tm, nodelist)
+    mc = pydtmc.markov_chain.MarkovChain.from_matrix(tm, nodelist)
 
-    nodelist_post_reduce = tgraph.getNodeList()
-    all_paths_after = list(networkx.all_simple_paths(tgraph,nodelist_post_reduce[0],nodelist_post_reduce[-1]))
+    metadata = {  # The meta data defining the environment
+        'cite_key':          CITATION_SHORT, 'citation': CITATION_FULL,
+        'attack_graph_name': A.name, 'tmatrix_headers': json.dumps(nodelist),
+        'tmatrix_probs':     json.dumps(tmatrix.todense().tolist()),
+        'mttf':              json.dumps(mttf.tolist()), }
+    return sample.Sample('MTTF', sum(mttf), 'MTTF', metadata)
 
-    metadata = {# The meta data defining the environment
-        'cite_key': CITATION_SHORT,
-        'citation':         CITATION_FULL,
-        'attack_graph_name': A.name,
-        # 'attack_graph_original':   json.dumps(json_graph.node_link_data(A)),
-        # 'attack_graph_reduced': json.dumps(json_graph.node_link_data(tgraph)),
-        'all_paths_original': json.dumps(all_paths_before),
-        'all_paths_reduced': json.dumps(all_paths_after),
-        'num_paths_original': len(all_paths_before),
-        'num_paths_reduced': len(all_paths_after),
-        # 'transition_matrix':   json.dumps(tmatrix.todense().tolist()),
-    }
-    return sample.Sample('Number of Paths', len(all_paths_after), 'paths', metadata)
   results.append(_RunTest())
-  print(results)
+  # print(results)
   return results
 
+
+def Cleanup(unused_benchmark_spec):
+  pass
 
 
 def Cleanup(unused_benchmark_spec):

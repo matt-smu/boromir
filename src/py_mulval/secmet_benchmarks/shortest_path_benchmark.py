@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Run struct_secmet."""
+"""Run shortest attack path benchmark."""
 import os
 import pathlib
 import networkx
@@ -30,10 +30,10 @@ from py_mulval import vm_util
 
 FLAGS = flags.FLAGS
 
-BENCHMARK_NAME = 'num_paths'
+BENCHMARK_NAME = 'shortest_attack_path'
 BENCHMARK_CONFIG = """
-num_paths:
-  description: Run num_paths metric
+shortest_attack_path:
+  description: Run shortest_attack_path metric
   flags:
     input_file: single_host_1.P
     rule: local_exploit_rules.P
@@ -41,17 +41,17 @@ num_paths:
     rules_dir: /opt/projects/diss/py-mulval/data/rules 
     data_dir: /opt/projects/diss/py-mulval/data
     secmet_ag_path: AttackGraph.dot
-    # output_dir: 
+  #   output_dir: /tmp/mulpy
   # vm_groups:
 """
 
-CITATION_SHORT = 'Dacier1996'
-CITATION_FULL = '''[1]Marc Dacier, Yves Deswarte, and Mohamed Kaâniche. 1996. Quantitative assessment of operational security: Models and tools. Information Systems Security, ed. by SK Katsikas and D. Gritzalis, London, Chapman & Hall (1996), 179–86.
+CITATION_SHORT = 'Ortalo1999'
+CITATION_FULL = '''[1]Rodolphe Ortalo, Yves Deswarte, and Mohamed Kaâniche. 1999. Experimenting with quantitative evaluation tools for monitoring operational security. IEEE Transactions on Software Engineering 25, 5 (1999), 633–650.
 '''
 
 # flags.DEFINE_string('cite_key', None, CITATION_SHORT)
 # flags.DEFINE_string('cite_long', None, CITATION_FULL)
-flags.DEFINE_string('shortest_ag_path', None, 'use this attack graph')
+# flags.DEFINE_string('numpaths_ag_path', None, 'use this attack graph')
 
 
 def GetConfig(user_config):
@@ -107,14 +107,14 @@ def Run(benchmark_spec):
       A.plot2(outfilename=A.name + '_001_orig.png')
     tgraph, tmatrix, nodelist = A.getTransMatrix(**opts)
 
-    # nodelist_pre_reduce = list(networkx.algorithms.dag.lexicographical_topological_sort(A))
-
     origin = list(A.getOriginnodesByAttackerLocated())[0]
     target = list(A.getTargetByNoEgressEdges())[0]
-    all_paths_before = list(networkx.all_simple_paths(A,origin,target))
+    shortest_path_before = list(networkx.all_simple_paths(A,origin,target))
+    shortest_path_length_before =  min(shortest_path_before, key=len)
 
     nodelist_post_reduce = tgraph.getNodeList()
-    all_paths_after = list(networkx.all_simple_paths(tgraph,nodelist_post_reduce[0],nodelist_post_reduce[-1]))
+    shortest_paths_after = list(networkx.all_simple_paths(tgraph,nodelist_post_reduce[0],nodelist_post_reduce[-1]))
+    shortest_path_length_after = min(shortest_paths_after, key=len)
 
     metadata = {# The meta data defining the environment
         'cite_key': CITATION_SHORT,
@@ -122,15 +122,17 @@ def Run(benchmark_spec):
         'attack_graph_name': A.name,
         # 'attack_graph_original':   json.dumps(json_graph.node_link_data(A)),
         # 'attack_graph_reduced': json.dumps(json_graph.node_link_data(tgraph)),
-        'all_paths_original': json.dumps(all_paths_before),
-        'all_paths_reduced': json.dumps(all_paths_after),
-        'num_paths_original': len(all_paths_before),
-        'num_paths_reduced': len(all_paths_after),
+        'all_paths_before': json.dumps(shortest_path_before),
+        'shortest_path_before': shortest_path_length_before,
+        'shortest_path_length_before': len(shortest_path_length_before),
+        'all_paths_after': shortest_paths_after,
+        'shortest_path_after': shortest_path_length_after,
+        'shortest_path_length_after': len(shortest_path_length_after),
         # 'transition_matrix':   json.dumps(tmatrix.todense().tolist()),
     }
-    return sample.Sample('Number of Paths', len(all_paths_after), 'paths', metadata)
+    return sample.Sample('Shortest Path Length', len(shortest_path_length_after), 'path length', metadata)
   results.append(_RunTest())
-  print(results)
+  # print(results)
   return results
 
 

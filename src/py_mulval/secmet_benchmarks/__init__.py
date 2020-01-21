@@ -22,7 +22,10 @@ from py_mulval import flags
 
 FLAGS = flags.FLAGS
 
+# define secmet global flags here
 flags.DEFINE_string('secmet_ag_path', None, 'use this attack graph')
+flags.DEFINE_boolean('secmet_plot_intermediate_graphs', False, 'Writes graphs to file when true.')
+flags.DEFINE_float('secmet_fix_cvss_score', None, 'Applies this cvss score to all vulnerabilities.')
 
 def _LoadBenchmarks():
   return list(import_util.LoadModulesForPath(__path__, __name__))
