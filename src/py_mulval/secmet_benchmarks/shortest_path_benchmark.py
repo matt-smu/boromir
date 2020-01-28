@@ -28,6 +28,8 @@ from py_mulval import py_mulval
 from py_mulval import sample
 from py_mulval import vm_util
 
+from py_mulval.metrics.ag_metrics import shortest_path
+
 FLAGS = flags.FLAGS
 
 BENCHMARK_NAME = 'shortest_attack_path'
@@ -45,9 +47,6 @@ shortest_attack_path:
   # vm_groups:
 """
 
-CITATION_SHORT = 'Ortalo1999'
-CITATION_FULL = '''[1]Rodolphe Ortalo, Yves Deswarte, and Mohamed Kaâniche. 1999. Experimenting with quantitative evaluation tools for monitoring operational security. IEEE Transactions on Software Engineering 25, 5 (1999), 633–650.
-'''
 
 # flags.DEFINE_string('cite_key', None, CITATION_SHORT)
 # flags.DEFINE_string('cite_long', None, CITATION_FULL)
@@ -117,8 +116,8 @@ def Run(benchmark_spec):
     shortest_path_length_after = min(shortest_paths_after, key=len)
 
     metadata = {# The meta data defining the environment
-        'cite_key': CITATION_SHORT,
-        'citation':         CITATION_FULL,
+        'cite_key': shortest_path.CITATION_SHORT,
+        'citation':         shortest_path.CITATION_FULL,
         'attack_graph_name': A.name,
         # 'attack_graph_original':   json.dumps(json_graph.node_link_data(A)),
         # 'attack_graph_reduced': json.dumps(json_graph.node_link_data(tgraph)),
