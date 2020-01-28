@@ -149,15 +149,15 @@ class PackageResourceLoader(ResourceLoader):
 
 
 DATA_PACKAGE_NAME = 'perfkitbenchmarker.data'
-YCSB_WORKLOAD_DIR_NAME = os.path.join(
-    os.path.dirname(perfkitbenchmarker.__file__), 'data/ycsb')
-EDW_SCRIPT_DIR_NAME = os.path.join(
-    os.path.dirname(perfkitbenchmarker.__file__), 'data/edw')
-SCRIPT_PACKAGE_NAME = 'perfkitbenchmarker.scripts'
-CONFIG_PACKAGE_NAME = 'perfkitbenchmarker.configs'
+AG_DOT_DIR_NAME = os.path.join(
+    os.path.dirname(py_mulval.__file__), 'data/mulval_ag')
+MULVAL_MODEL_DIR_NAME = os.path.join(
+    os.path.dirname(py_mulval.__file__), 'data/models')
+SCRIPT_PACKAGE_NAME = 'data.scripts'
+CONFIG_PACKAGE_NAME = 'data.configs'
 DEFAULT_RESOURCE_LOADERS = [PackageResourceLoader(DATA_PACKAGE_NAME),
-                            FileResourceLoader(YCSB_WORKLOAD_DIR_NAME),
-                            FileResourceLoader(EDW_SCRIPT_DIR_NAME),
+                            FileResourceLoader(AG_DOT_DIR_NAME),
+                            FileResourceLoader(MULVAL_MODEL_DIR_NAME),
                             PackageResourceLoader(SCRIPT_PACKAGE_NAME),
                             PackageResourceLoader(CONFIG_PACKAGE_NAME)]
 

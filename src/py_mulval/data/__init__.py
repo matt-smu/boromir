@@ -149,15 +149,18 @@ class PackageResourceLoader(ResourceLoader):
 
 
 DATA_PACKAGE_NAME = 'py_mulval.data'
-YCSB_WORKLOAD_DIR_NAME = os.path.join(
-    os.path.dirname(py_mulval.__file__), 'data/ycsb')
-EDW_SCRIPT_DIR_NAME = os.path.join(
-    os.path.dirname(py_mulval.__file__), 'data/edw')
-SCRIPT_PACKAGE_NAME = 'py_mulval.scripts'
+AG_DOT_DIR_NAME = os.path.join(
+    os.path.dirname(py_mulval.__file__), 'data/attack_graphs')
+SECMET_DATA_DIR_NAME = os.path.join(
+    os.path.dirname(py_mulval.__file__), 'data/secmet')
+MULVAL_MODEL_DIR_NAME = os.path.join(
+    os.path.dirname(py_mulval.__file__), 'data/secmet/models')
+SCRIPT_PACKAGE_NAME = 'py_mulval.data.secmet.scripts'
 CONFIG_PACKAGE_NAME = 'py_mulval.configs'
 DEFAULT_RESOURCE_LOADERS = [PackageResourceLoader(DATA_PACKAGE_NAME),
-                            FileResourceLoader(YCSB_WORKLOAD_DIR_NAME),
-                            FileResourceLoader(EDW_SCRIPT_DIR_NAME),
+                            FileResourceLoader(AG_DOT_DIR_NAME),
+                            FileResourceLoader(MULVAL_MODEL_DIR_NAME),
+                            FileResourceLoader(SECMET_DATA_DIR_NAME),
                             PackageResourceLoader(SCRIPT_PACKAGE_NAME),
                             PackageResourceLoader(CONFIG_PACKAGE_NAME)]
 

@@ -570,7 +570,7 @@ class AttackGraph(nx.MultiDiGraph):
     def getReducedGraph(self, *args, **kwargs):
         """Returns the AG with coealesced edges
 
-        
+
         """
         # tgraph = tgraph
         tgraph = deepcopy(self)
@@ -695,7 +695,8 @@ class AttackGraph(nx.MultiDiGraph):
         #     logging.debug((tgraph.nodes[n]))
         # logging.debug(('or nodes after: ', orNodes))
 
-        tgraph.remove_node(tgraph.origin)
+        if tgraph.origin:
+            tgraph.remove_node(tgraph.origin)
 
         tmatrix, nodelist = tgraph.convertTMatrix()
 

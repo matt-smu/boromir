@@ -1,0 +1,57 @@
+#scoreDict:
+#  'direct network access': 10
+#  'NFS shell': 9.5
+#  'execCode implies file access': 7.8
+#  'NFS semantics': 9.6
+#  'Trojan horse installation': 5
+#  'local exploit': 5
+#  'any machine he has an account on will also be compromised': 9
+#  'through a log-in service': 9
+#  'CVE-2014-9796': 6.8
+#  'CVE-2015-7501': 2
+#  'CVE-2016-xxxx': 9.5
+
+# @TODO assign rule id
+coalesce_rules: # list of AND rules to coalesce
+#- 'NFS shell'
+#- 'execCode implies file access'
+#- 'NFS semantics'
+#- 'When a principal is compromised any machine he has an account on will also be compromised'
+  - 'na_001'
+  - 'na_002'
+  - 'multi-hop access by gateway'
+  - 'multi-hop access'
+  - 'direct on-host access'
+  - 'direct network access'
+  - 'log in for ftpd'
+  - 'Access a host through a log-in service'
+
+# @TODO assign rule id
+exploit_rules: # dict of AND rules to add to tmatrix
+#  'arpSpoofVuln': 1
+#  'password sniffing through spoof': 2
+  'remote exploit of a server program': .002
+  'Trojan horse installation': .02
+  'local exploit': 1
+#  'direct network access': 10
+  'NFS shell': 3
+  'execCode implies file access': 10
+  'NFS semantics': 20
+#  'Trojan horse installation': 9.1
+  'any machine he has an account on will also be compromised': 50
+  'through a log-in service': 40
+  'password sniffing through spoof': 1
+  'password sniffing through route hijack': 2
+
+
+
+exploitDict: # dict of LEAF CVSS overrides
+  'CVE-2014-9796': 5
+  'CVE-2009-2048': 5
+  'CVE-2015-7501': 5
+  'CVE-2016-xxxx': .02
+  'CAN-2002-0392': 2
+  'CVE-2010-2784': 2 # no sql cnxn
+  'CVE-2014-6271': 2
+  'arpSpoofVuln': 2
+  'vulID': 4
