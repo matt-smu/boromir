@@ -1,4 +1,8 @@
 mttf:
+    flag_matrix: fmatrix
+    flag_matrix_defs:
+        fmatrix:
+            secmet_fix_cvss_score: [1, 2, 3, 4, 5, 6,  7, 8, 9, 10]
     flags:
         input_file: single_host.P
         rule: local_exploit_rules.P

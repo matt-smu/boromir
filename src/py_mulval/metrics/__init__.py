@@ -16,7 +16,7 @@ FLAGS = flags.FLAGS
 #
 # VALID_METRICS = {}
 # for module in METRICS:
-#   if module.METRIC_NAME in VALID_METRICS:
+#   if module. and  module.METRIC_NAME  in VALID_METRICS:
 #     raise ValueError('There are multiple metrics with METRIC_NAME "%s"' %
 #                      (module.METRIC_NAME))
 #   VALID_METRICS[module.METRIC_NAME] = module

@@ -723,7 +723,7 @@ class AttackGraph(nx.MultiDiGraph):
 
         return tgraph, tmatrix, nodelist
 
-    def getNodeList(self):
+    def getNodeList(self, includeSource=False):
         """
         Orders current nodes for writing tmatrix
         Currently just getting sources in the front and sinks at the end... may need to be smarter about this
@@ -755,16 +755,16 @@ class AttackGraph(nx.MultiDiGraph):
             if n not in (sink, source): transit[n] = v
 
         # build node list for tmatrix header
-
-        # node_list.append(source) # origin makes tmatrix non-invertible
+        if includeSource:
+            node_list.append(source) # origin makes tmatrix non-invertible
         tmp = list(transit.keys())
         for n in range(len(tmp)):
             a = max([int(i) for i in tmp])
             # logging.debug(('added a to nodelist', a, type(str(a)), node_list))
             node_list.append(str(a))
             tmp.remove(str(a))
-
-        # node_list.append(sink)
+        if sink:
+            node_list.append(sink)
         logging.debug(('added sink to nodelist', sink, node_list, self.nodes(), len(node_list), len(self.nodes())))
         # assert (len(node_list) == len(self.nodes()))
 

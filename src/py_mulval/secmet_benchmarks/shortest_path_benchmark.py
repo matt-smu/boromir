@@ -22,7 +22,8 @@ import json
 from py_mulval import configs
 from py_mulval import data
 from py_mulval import flags
-from py_mulval import genTransMatrix
+# from py_mulval import genTransMatrix
+from py_mulval import attack_graph
 from py_mulval import mulpy
 from py_mulval import py_mulval
 from py_mulval import sample
@@ -48,21 +49,34 @@ shortest_attack_path:
 """
 
 
-# flags.DEFINE_string('cite_key', None, CITATION_SHORT)
-# flags.DEFINE_string('cite_long', None, CITATION_FULL)
-# flags.DEFINE_string('numpaths_ag_path', None, 'use this attack graph')
-
-
 def GetConfig(user_config):
   return configs.LoadConfig(BENCHMARK_CONFIG, user_config, BENCHMARK_NAME)
 
 
 def Prepare(benchmark_spec):
-  pass
+  # A = AttackGraph(inputDir=inputDir, scriptsDir=scriptsDir, opts=opts
+  if not benchmark_spec.attack_graph:
+    inputDir = data.ResourcePath('attack_graphs')
+    outputDir = vm_util.GetTempDir()
+    outfileName = os.path.splitext(FLAGS.input_file)[0]  # 'input'
+    scriptsDir = data.ResourcePath('secmet')
+    # pathlib.Path(FLAGS.output_dir).mkdir(parents=True, exist_ok=True)
+
+    opts = dict()
+    opts['scriptsDir'] = scriptsDir
+    opts['inputDir'] = inputDir
+    opts['outputDir'] = outputDir
+    opts['outfileName'] = outfileName
+    opts['PLOT_INTERMEDIATE_GRAPHS'] = FLAGS.secmet_plot_intermediate_graphs
+    matrix_file = vm_util.PrependTempDir(outfileName + '.csv')
+    opts['MatrixFile'] = matrix_file
+
+    benchmark_spec.attack_graph = attack_graph.AttackGraph(**opts)
+
 
 
 def Run(benchmark_spec):
-  """Collect Num_Paths Metrics for an attack graph
+  """Collect Shortest_Paths Metrics for an attack graph
 
   Args:
     benchmark_spec: The benchmark specification. Contains all data that is
@@ -73,64 +87,13 @@ def Run(benchmark_spec):
   """
   results = []
 
-  def _RunTest():
 
-    #####
-    ## genTransMatrix
-    ####
-    # inputDir = FLAGS.base_dir
-
-
-    # A = AttackGraph(inputDir=inputDir, scriptsDir=scriptsDir, opts=opts
-    if not benchmark_spec.attack_graph:
-      inputDir = data.ResourcePath('attack_graphs')
-      outputDir = vm_util.GetTempDir()
-      outfileName = os.path.splitext(FLAGS.input_file)[0]  # 'input'
-      scriptsDir = data.ResourcePath('secmet')
-      # pathlib.Path(FLAGS.output_dir).mkdir(parents=True, exist_ok=True)
-
-      opts = dict()
-      opts['scriptsDir'] = scriptsDir
-      opts['inputDir'] = inputDir
-      opts['outputDir'] = outputDir
-      opts['outfileName'] = outfileName
-      opts['PLOT_INTERMEDIATE_GRAPHS'] = FLAGS.secmet_plot_intermediate_graphs
-      matrix_file = vm_util.PrependTempDir(outfileName + '.csv')
-      opts['MatrixFile'] = matrix_file
-
-      benchmark_spec.attack_graph = genTransMatrix.AttackGraph(**opts)
-
-    A = benchmark_spec.attack_graph
-    A.name = outfileName
-    if opts['PLOT_INTERMEDIATE_GRAPHS']:
-      A.plot2(outfilename=A.name + '_001_orig.png')
-    tgraph, tmatrix, nodelist = A.getTransMatrix(**opts)
-
-    origin = list(A.getOriginnodesByAttackerLocated())[0]
-    target = list(A.getTargetByNoEgressEdges())[0]
-    shortest_path_before = list(networkx.all_simple_paths(A,origin,target))
-    shortest_path_length_before =  min(shortest_path_before, key=len)
-
-    nodelist_post_reduce = tgraph.getNodeList()
-    shortest_paths_after = list(networkx.all_simple_paths(tgraph,nodelist_post_reduce[0],nodelist_post_reduce[-1]))
-    shortest_path_length_after = min(shortest_paths_after, key=len)
-
-    metadata = {# The meta data defining the environment
-        'cite_key': shortest_path.CITATION_SHORT,
-        'citation':         shortest_path.CITATION_FULL,
-        'attack_graph_name': A.name,
-        # 'attack_graph_original':   json.dumps(json_graph.node_link_data(A)),
-        # 'attack_graph_reduced': json.dumps(json_graph.node_link_data(tgraph)),
-        'all_paths_before': json.dumps(shortest_path_before),
-        'shortest_path_before': shortest_path_length_before,
-        'shortest_path_length_before': len(shortest_path_length_before),
-        'all_paths_after': shortest_paths_after,
-        'shortest_path_after': shortest_path_length_after,
-        'shortest_path_length_after': len(shortest_path_length_after),
-        # 'transition_matrix':   json.dumps(tmatrix.todense().tolist()),
-    }
-    return sample.Sample('Shortest Path Length', len(shortest_path_length_after), 'path length', metadata)
-  results.append(_RunTest())
+  metric = shortest_path.shortest_path_metric()
+  metric.ag = benchmark_spec.attack_graph
+  value, metadata = metric.calculate()
+  results.append(
+    sample.Sample(metric.METRIC_NAME, value,
+                  shortest_path.METRIC_UNIT, metadata))
   # print(results)
   return results
 

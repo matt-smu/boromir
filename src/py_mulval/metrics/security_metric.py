@@ -42,3 +42,5 @@ class AGBasedSecMet(BaseSecurityMetric):
   def CheckPreReqs(self):
     if not self.ag:
       raise errors.Error('AG Metric called without an attack graph set')
+    pass
+
