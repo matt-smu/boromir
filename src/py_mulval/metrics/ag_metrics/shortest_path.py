@@ -1,19 +1,19 @@
 """Security Metric"""
 
 import os
-import pathlib
+# import pathlib
 import networkx
 from networkx.readwrite import json_graph
 import json
 
-from py_mulval import configs
-from py_mulval import data
+# from py_mulval import configs
+# from py_mulval import data
 from py_mulval import flags
 from py_mulval import attack_graph
-from py_mulval import mulpy
-from py_mulval import py_mulval
-from py_mulval import sample
-from py_mulval import vm_util
+# from py_mulval import mulpy
+# from py_mulval import py_mulval
+# from py_mulval import sample
+# from py_mulval import vm_util
 from py_mulval.metrics.security_metric import AGBasedSecMet
 
 
@@ -52,16 +52,19 @@ class shortest_path_metric(AGBasedSecMet):
         'attack_graph_name': self.ag.name,
     }
     return metadata
-
-  def CheckPreReqs(self):
-    pass
+  #
+  # def CheckPreReqs(self):
+  #   pass
 
   def calculate(self):
+
+    self.CheckPreReqs()
     A = self.ag
     A.name = os.path.splitext(FLAGS.input_file)[0]
     if FLAGS.secmet_plot_intermediate_graphs:
       A.plot2(outfilename=A.name + '_001_orig.png')
     tgraph, tmatrix, nodelist = A.getTransMatrix()
+
 
     origin = list(A.getOriginnodesByAttackerLocated())[0]
     target = list(A.getTargetByNoEgressEdges())[0]

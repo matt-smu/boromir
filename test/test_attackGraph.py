@@ -1,7 +1,7 @@
-from unittest import TestCase
+import common_test_case
 
 
-class TestAttackGraph(TestCase):
+class TestAttackGraph(common_test_case):
   def test_load_dot_file(self):
     def test_attack_graph(self):
       ag = AttackGraph()

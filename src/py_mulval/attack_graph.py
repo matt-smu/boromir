@@ -35,6 +35,30 @@ conf_override = {}
 coalesced_rules = []
 exploit_rules = {}
 
+# from Dacier_1996
+# .0002 is quasi-instantanious
+# .02 is 1 hour
+# .2 1 day
+# 1 is 1 week
+# 5 is one month
+# 50 is one year
+time_dict = {(0, 1.6): .0002,
+             (1.6, 3.3): .02,
+             ( 3.3, 5): .2,
+             (5, 6.6): 1,
+            (6.6, 8.3): 5,
+            (8.3, 10): 50,
+             }
+
+# from Ortalo_1999
+effort_dict = {(0, 2.5): 1,
+               (2.5, 5): 0.1,
+               ( 5, 7.5): 0.01,
+                (7.5, 10): 0.001
+              }
+CVSS2EFFORT_MAP = 'cvss2effort'
+CVSS2TIME_MAP = 'cvss2time'
+SCORE_MAPS = [CVSS2EFFORT_MAP, CVSS2TIME_MAP]
 
 class AttackGraph(nx.MultiDiGraph):
     """
@@ -82,7 +106,9 @@ class AttackGraph(nx.MultiDiGraph):
         self.target = None
         self.node_list = []
         self.data = None
-        self.fix_cvss_score = None
+        self.fix_cvss_score = None # FLAGS.secmet_fix_cvss_score or None
+        self.map_scores = None # FLAGS.secmet_map_scores if FLAGS.secmet_map_scores in SCORE_MAPS else None
+
         if Path(os.path.join(self.inputDir, AG_DOT)).exists():
             self.data = read_dot(os.path.join(self.inputDir, AG_DOT))
         super(AttackGraph, self).__init__(self.data)
@@ -178,40 +204,53 @@ class AttackGraph(nx.MultiDiGraph):
         return labels
 
     def getCVSSscore(self, cveid):
+        score = None
         if self.fix_cvss_score:
-            return self.fix_cvss_score
-        score = 'null'  # the score to return
-        con = None
-        logging.debug(('looking for cveid: ', cveid))
-
-        if cveid in self.exploitDict.keys():  # check user overrides first
-            score = self.exploitDict[cveid]
-            # logging.debug(('Matched hypothetical score ' + cveid + ' : ' + str(score)))
+            # return self.fix_cvss_score
+            score = self.fix_cvss_score
         else:
-            try:
-                con = MySQLdb.connect('localhost', 'nvd', 'nvd', 'nvd')
-                cur = con.cursor(MySQLdb.cursors.DictCursor)
-                cur.execute("select score from nvd where id = '%s'" % (cveid))
-                res = cur.fetchone()  # the cveid or None it
-                if res:
-                    score = res['score']
-                    logging.debug(('Found cveid ' + cveid + ' with score: ' + str(score)))
+        # score = 'null'  # the score to return
+            con = None
+            logging.debug(('looking for cveid: ', cveid))
 
-                else:
+            if cveid in self.exploitDict.keys():  # check user overrides first
+                score = self.exploitDict[cveid]
+                # logging.debug(('Matched hypothetical score ' + cveid + ' : ' + str(score)))
+            else:
+                try:
+                    con = MySQLdb.connect('localhost', 'nvd', 'nvd', 'nvd')
+                    cur = con.cursor(MySQLdb.cursors.DictCursor)
+                    cur.execute("select score from nvd where id = '%s'" % (cveid))
+                    res = cur.fetchone()  # the cveid or None it
+                    if res:
+                        score = res['score']
+                        logging.debug(('Found cveid ' + cveid + ' with score: ' + str(score)))
+
+                    else:
+                        logging.debug(('bad cveid (result unknown): setting CVSS to 1!!!**** [' + cveid + ']'))
+                        score = 1
+                except MySQLdb.Error as e:
+                    logging.debug(("Error %d: %s" % (e.args[0], e.args[1])))
+
+                    # @TODO exit when not testing (uncomment)
+                    # sys.exit(1)
                     logging.debug(('bad cveid (result unknown): setting CVSS to 1!!!**** [' + cveid + ']'))
                     score = 1
-            except MySQLdb.Error as e:
-                logging.debug(("Error %d: %s" % (e.args[0], e.args[1])))
-
-                # @TODO exit when not testing (uncomment)
-                # sys.exit(1)
-                logging.debug(('bad cveid (result unknown): setting CVSS to 1!!!**** [' + cveid + ']'))
-                score = 1
-            finally:
-                if con:
-                    con.close()
-
+                finally:
+                    if con:
+                        con.close()
+        if self.map_scores:
+            score = self.mapScore(self.map_scores, score)
         return score
+
+    def mapScore(self, scoremap_string, score):
+        if scoremap_string == CVSS2TIME_MAP:
+            return self.translate_cvss(time_dict, score)
+        if scoremap_string == CVSS2EFFORT_MAP:
+            return self.translate_cvss(effort_dict, score)
+        logging.error('map Score called with no valid score_map dict')
+        return
+
 
     def getANDnodes(self):
         andNodes = [n for n, v in self.nodes(data=True) if v['type'] == 'AND']
@@ -258,6 +297,8 @@ class AttackGraph(nx.MultiDiGraph):
                         else:
                             self.nodes[andNode]['exploit_rule_score'] = self.exploit_rules[xr]
                             # logging.debug(('setting node to default exploit score: ', self.nodes[andNode]))
+                        if self.map_scores:
+                            self.nodes[andNode]['exploit_rule_score'] = self.mapScore(self.map_scores, self.nodes[andNode]['exploit_rule_score'])
 
                 # look for cvss score in leafs
                 leafPreds = [n for n in self.predecessors(andNode) if self.nodes[n]['type'] == 'LEAF']
@@ -615,6 +656,23 @@ class AttackGraph(nx.MultiDiGraph):
         # tgraph.plot2(outfilename=self.name + '_006_addOrigin.png')
 
         return tgraph
+
+    # not using np.interp to match paper assumptions
+    def translate_cvss(self, parted_dict, score):
+        """Takes a dict of tuple(range) : value to map scores into
+
+        # effort_dict = {(0, 2.5): 1,
+        #                (2.5, 5): 0.1,
+        #                ( 5, 7.5): 0.01,
+        #                 (7.5, 10): 0.001
+        #               }
+        """
+        for key in parted_dict:
+            if float(key[0]) <= float(score) <= float(key[1]):
+                return parted_dict[key]
+        return float(score)
+        # vfunc = np.vectorize(translate_cvss, otypes=[float])  # vfunc(
+        # effort_dict, [0,1,2,3,4,5, 6, 7, 8, 9, 10])
 
     def scoreTGraph(self, *args, **kwargs):
 

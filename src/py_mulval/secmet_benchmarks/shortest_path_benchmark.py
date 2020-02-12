@@ -14,18 +14,18 @@
 
 """Run shortest attack path benchmark."""
 import os
-import pathlib
-import networkx
-from networkx.readwrite import json_graph
-import json
+# import pathlib
+# import networkx
+# from networkx.readwrite import json_graph
+# import json
 
 from py_mulval import configs
 from py_mulval import data
 from py_mulval import flags
 # from py_mulval import genTransMatrix
 from py_mulval import attack_graph
-from py_mulval import mulpy
-from py_mulval import py_mulval
+# from py_mulval import mulpy
+# from py_mulval import py_mulval
 from py_mulval import sample
 from py_mulval import vm_util
 
@@ -38,6 +38,9 @@ BENCHMARK_CONFIG = """
 shortest_attack_path:
   description: Run shortest_attack_path metric
   flags:
+    # secmet_plot_intermediate_graphs
+    # secmet_fix_cvss_score: 1
+    secmet_map_scores: 'cvss2time'
     input_file: single_host_1.P
     rule: local_exploit_rules.P
     models_dir: /opt/projects/diss/py-mulval/data/models 
@@ -74,7 +77,6 @@ def Prepare(benchmark_spec):
     benchmark_spec.attack_graph = attack_graph.AttackGraph(**opts)
 
 
-
 def Run(benchmark_spec):
   """Collect Shortest_Paths Metrics for an attack graph
 
@@ -87,7 +89,6 @@ def Run(benchmark_spec):
   """
   results = []
 
-
   metric = shortest_path.shortest_path_metric()
   metric.ag = benchmark_spec.attack_graph
   value, metadata = metric.calculate()
@@ -96,7 +97,6 @@ def Run(benchmark_spec):
                   shortest_path.METRIC_UNIT, metadata))
   # print(results)
   return results
-
 
 
 def Cleanup(unused_benchmark_spec):
