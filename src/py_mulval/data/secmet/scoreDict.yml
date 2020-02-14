@@ -35,7 +35,7 @@ exploit_rules: # dict of AND rules to add to tmatrix
   'local exploit': 5
 #  'direct network access': 10
   'NFS shell': 7
-  'execCode implies file access': 8
+  'execCode implies file access': 1.3
   'NFS semantics': 9
 #  'Trojan horse installation': 9.1
   'any machine he has an account on will also be compromised': 9.2
