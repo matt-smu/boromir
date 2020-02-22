@@ -48,10 +48,14 @@ BENCHMARK_SETS = {
         BENCHMARK_LIST: [
             'num_paths',
             # 'avg_path_length',
-            'shortest_attack_path',
+            'shortest_path_direct',
+            'shortest_path_cumulative',
             # 'np',
             # 'mttr',
             'mttf',
+            'metf_ml',
+            'metf_tm',
+
         ]
     },
     'ag_based_metric_set': {

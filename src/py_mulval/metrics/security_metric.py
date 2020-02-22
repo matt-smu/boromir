@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 from py_mulval import errors
 
 METRIC_NAME = None
@@ -26,6 +28,9 @@ class BaseSecurityMetric(object):
         'metric_usage': USAGE,
     }
     return metadata
+
+  def getUnique(self, slice=8):
+    return str(uuid.uuid4())[:slice]
 
   def calculate(self):
     pass

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Run shortest attack path benchmark."""
+"""Run Mean Effort To Failure benchmark."""
 import os
 # import pathlib
 # import networkx
@@ -29,28 +29,28 @@ from py_mulval import attack_graph
 from py_mulval import sample
 from py_mulval import vm_util
 
-from py_mulval.metrics.ag_metrics import shortest_path
+from py_mulval.metrics.ag_metrics import metf_tm
 
 FLAGS = flags.FLAGS
 
-BENCHMARK_NAME = 'shortest_attack_path'
+BENCHMARK_NAME = metf_tm.METRIC_NAME
 BENCHMARK_CONFIG = """
-shortest_attack_path:
-  description: Run shortest_attack_path metric
+metf_tm:
+  description: Run metf tm metric
   flags:
-    # secmet_plot_intermediate_graphs
-    # secmet_fix_cvss_score: 1
-    secmet_map_scores: 'cvss2time'
     input_file: single_host_1.P
     rule: local_exploit_rules.P
     models_dir: /opt/projects/diss/py-mulval/data/models 
     rules_dir: /opt/projects/diss/py-mulval/data/rules 
     data_dir: /opt/projects/diss/py-mulval/data
     secmet_ag_path: AttackGraph.dot
-  #   output_dir: /tmp/mulpy
+    # output_dir: 
   # vm_groups:
 """
 
+CITATION_SHORT = 'Ortalo'
+CITATION_FULL = """[1]Marc Dacier, Yves Deswarte, and Mohamed Kaâniche. 1996. Quantitative assessment of operational security: Models and tools. Information Systems Security, ed. by SK Katsikas and D. Gritzalis, London, Chapman & Hall (1996), 179–86.
+"""
 
 def GetConfig(user_config):
   return configs.LoadConfig(BENCHMARK_CONFIG, user_config, BENCHMARK_NAME)
@@ -78,7 +78,7 @@ def Prepare(benchmark_spec):
 
 
 def Run(benchmark_spec):
-  """Collect Shortest_Paths Metrics for an attack graph
+  """Collect metf Metrics for an attack graph
 
   Args:
     benchmark_spec: The benchmark specification. Contains all data that is
@@ -89,12 +89,12 @@ def Run(benchmark_spec):
   """
   results = []
 
-  metric = shortest_path.shortest_path_metric()
+  metric = metf_tm.metf_tm_metric()
   metric.ag = benchmark_spec.attack_graph
   value, metadata = metric.calculate()
   results.append(
     sample.Sample(metric.METRIC_NAME, value,
-                  shortest_path.METRIC_UNIT, metadata))
+                  metric.METRIC_UNIT, metadata))
   # print(results)
   return results
 

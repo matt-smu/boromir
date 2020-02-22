@@ -42,23 +42,28 @@ exploit_rules = {}
 # 1 is 1 week
 # 5 is one month
 # 50 is one year
-time_dict = {(0, 1.6): .0002,
-             (1.6, 3.3): .02,
-             ( 3.3, 5): .2,
-             (5, 6.6): 1,
-            (6.6, 8.3): 5,
-            (8.3, 10): 50,
+# we invert so scores reflect mean transition rates (\lambda)
+time_dict = {(0, 1.6): 1. / .0002,
+             (1.6, 3.3): 1. / .02,
+             ( 3.3, 5): 1. / .2,
+             (5, 6.6): 1. / 1.,
+            (6.6, 8.3): 1. / 5.,
+            (8.3, 10): 1. / 50.,
              }
 
 # from Ortalo_1999
-effort_dict = {(0, 2.5): 1,
-               (2.5, 5): 0.1,
-               ( 5, 7.5): 0.01,
-                (7.5, 10): 0.001
+effort_dict = {(0, 2.5): 1. / 1.,
+               (2.5, 5): 1. / 0.1,
+               ( 5, 7.5): 1. / 0.01,
+                (7.5, 10): 1. / 0.001
               }
 CVSS2EFFORT_MAP = 'cvss2effort'
 CVSS2TIME_MAP = 'cvss2time'
 SCORE_MAPS = [CVSS2EFFORT_MAP, CVSS2TIME_MAP]
+
+RELIABILITY_STRAT = 'reliability'
+BIOLOGY_STRAT = 'biology'
+SCORE_STRATEGIES = [RELIABILITY_STRAT, BIOLOGY_STRAT]
 
 class AttackGraph(nx.MultiDiGraph):
     """
@@ -106,8 +111,9 @@ class AttackGraph(nx.MultiDiGraph):
         self.target = None
         self.node_list = []
         self.data = None
-        self.fix_cvss_score = None # FLAGS.secmet_fix_cvss_score or None
-        self.map_scores = None # FLAGS.secmet_map_scores if FLAGS.secmet_map_scores in SCORE_MAPS else None
+        self.fix_cvss_score = FLAGS.secmet_fix_cvss_score or None
+        self.map_scores = FLAGS.secmet_map_scores if FLAGS.secmet_map_scores in SCORE_MAPS else None
+        self.score_strategy = FLAGS.secmet_score_strategy or None
 
         if Path(os.path.join(self.inputDir, AG_DOT)).exists():
             self.data = read_dot(os.path.join(self.inputDir, AG_DOT))
@@ -544,18 +550,37 @@ class AttackGraph(nx.MultiDiGraph):
 
             logging.debug(('tgraph root node: ', self.origin))
 
-    def setEdgeScore(self, u, v, k, score):
+    def setEdgeScore(self, u, v, k, score, strategy=None):
 
         self[u][v][k]['score'] = score
         self[u][v][k]['weight'] = score
         self[u][v][k]['label'] = round(score, 2)
 
-    def setEdgeScores(self, **kwargs):
+    def getOutEdgeValsForKey(self, n, key):
+        vals = []
+        o_edges = [((u, v, k), e) for u, v, k, e in self.out_edges(n, keys=True, data=True)]
+
+        for (u, v, k), e in o_edges:
+          if key in self[u][v][k].keys() and self[u][v][k][key]:
+            vals.append(self[u][v][k][key])
+        return vals
+
+    def getInEdgeValsForKey(self, n, key):
+        vals = []
+        o_edges = [((u, v, k), e) for u, v, k, e in self.in_edges(n, keys=True, data=True)]
+
+        for (u, v, k), e in o_edges:
+          if key in self[u][v][k].keys() and self[u][v][k][key]:
+            vals.append(self[u][v][k][key])
+        return vals
+
+    def setEdgeScores(self, strategy=None, **kwargs):
         for n in self.nodes():
             self.nodes[n]['succs_sum'] = 0
             self.nodes[n]['succs_count'] = 0
             self.nodes[n]['preds_sum'] = 0
             self.nodes[n]['preds_count'] = 0
+
             i_edges = [((u, v, k), e) for u, v, k, e in self.in_edges(n, keys=True, data=True)]
             o_edges = [((u, v, k), e) for u, v, k, e in self.out_edges(n, keys=True, data=True)]
 
@@ -573,29 +598,34 @@ class AttackGraph(nx.MultiDiGraph):
                     self.nodes[n]['succs_sum'] += self[u][v][k]['score']
                 self.nodes[n]['succs_count'] += 1
 
-            denom = self.nodes[n]['succs_sum'] + self.nodes[n]['preds_sum']
-            self.setEdgeScore(n, n, self.getSelfEdge(n), self.nodes[n]['preds_sum'])
-            logging.debug(("sums: node[{}] outsum[{}] insum[{}] denom[{}] selfedge[{}]".format(
-                n, self.nodes[n]['succs_sum'], self.nodes[n]['preds_sum'], denom,
-                self[n][n][self.getSelfEdge(n)]['score'])))
 
-    def setEdgeWeights(self, **kwargs):
+            if not self.score_strategy:
+                denom = self.nodes[n]['succs_sum'] + self.nodes[n]['preds_sum']
+                self.setEdgeScore(n, n, self.getSelfEdge(n), self.nodes[n]['preds_sum'])
+                logging.debug(("sums: node[{}] outsum[{}] insum[{}] denom[{}] selfedge[{}]".format(
+                    n, self.nodes[n]['succs_sum'], self.nodes[n]['preds_sum'], denom,
+                    self[n][n][self.getSelfEdge(n)]['score'])))
 
-        # set edge weights as fraction of sum_succs
-        for n in self.nodes():
-            denom = self.nodes[n]['succs_sum'] + self.nodes[n]['preds_sum']
-            logging.debug(
-                ('sums: ', n, self.nodes[n]['succs_sum'], self.nodes[n]['preds_sum'], denom, self.getSelfEdge(n)))
-            if denom != 0:
-                # i_edges = [((u, v, k), e) for u, v, k, e in self.in_edges(n, keys=True, data=True)]
-                o_edges = [((u, v, k), e) for u, v, k, e in self.out_edges(n, keys=True, data=True)]
+    def setEdgeWeights(self, strategy=None, **kwargs):
 
-                for (u, v, k), e in o_edges:
-                    if self[u][v][k]['score']:
-                        self[u][v][k]['weight'] = self[u][v][k]['score'] / denom
-                        self[u][v][k]['label'] = round(self[u][v][k]['score'] / denom, 2)
-                # set self edge weight
-                self.setEdgeScore(n, n, self.getSelfEdge(n), self.nodes[n]['preds_sum'] / denom)
+        if not strategy:
+            ''' Default weighting strategy normalized outbound weights with inbound weights 
+            and applies to the self edge'''
+            # set edge weights as fraction of sum_succs
+            for n in self.nodes():
+                denom = self.nodes[n]['succs_sum'] + self.nodes[n]['preds_sum']
+                logging.debug(
+                    ('sums: ', n, self.nodes[n]['succs_sum'], self.nodes[n]['preds_sum'], denom, self.getSelfEdge(n)))
+                if denom != 0:
+                    # i_edges = [((u, v, k), e) for u, v, k, e in self.in_edges(n, keys=True, data=True)]
+                    o_edges = [((u, v, k), e) for u, v, k, e in self.out_edges(n, keys=True, data=True)]
+
+                    for (u, v, k), e in o_edges:
+                        if self[u][v][k]['score']:
+                            self[u][v][k]['weight'] = self[u][v][k]['score'] / denom
+                            self[u][v][k]['label'] = round(self[u][v][k]['score'] / denom, 2)
+                    # set self edge weight
+                    self.setEdgeScore(n, n, self.getSelfEdge(n), self.nodes[n]['preds_sum'] / denom)
 
     def getSelfEdge(self, n):
         # assuming each node only has one selfloop

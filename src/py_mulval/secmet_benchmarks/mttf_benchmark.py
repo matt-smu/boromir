@@ -14,16 +14,22 @@
 
 """Run Mean Time To Failure benchmark."""
 import os
-import numpy as np
-import json
-import pydtmc
+# import pathlib
+# import networkx
+# from networkx.readwrite import json_graph
+# import json
 
 from py_mulval import configs
 from py_mulval import data
 from py_mulval import flags
-from py_mulval import genTransMatrix
+# from py_mulval import genTransMatrix
+from py_mulval import attack_graph
+# from py_mulval import mulpy
+# from py_mulval import py_mulval
 from py_mulval import sample
 from py_mulval import vm_util
+
+from py_mulval.metrics.ag_metrics import mttf
 
 FLAGS = flags.FLAGS
 
@@ -46,7 +52,8 @@ CITATION_SHORT = 'Dacier1996'
 CITATION_FULL = """[1]Marc Dacier, Yves Deswarte, and Mohamed Kaâniche. 1996. Quantitative assessment of operational security: Models and tools. Information Systems Security, ed. by SK Katsikas and D. Gritzalis, London, Chapman & Hall (1996), 179–86.
 """
 
-flags.DEFINE_string('mttf_ag_path', None, 'use this attack graph')
+# flags.DEFINE_string('mttf_ag_path', None, 'use this attack graph')
+
 
 
 def GetConfig(user_config):
@@ -54,7 +61,24 @@ def GetConfig(user_config):
 
 
 def Prepare(benchmark_spec):
-  pass
+  # A = AttackGraph(inputDir=inputDir, scriptsDir=scriptsDir, opts=opts
+  if not benchmark_spec.attack_graph:
+    inputDir = data.ResourcePath('attack_graphs')
+    outputDir = vm_util.GetTempDir()
+    outfileName = os.path.splitext(FLAGS.input_file)[0]  # 'input'
+    scriptsDir = data.ResourcePath('secmet')
+    # pathlib.Path(FLAGS.output_dir).mkdir(parents=True, exist_ok=True)
+
+    opts = dict()
+    opts['scriptsDir'] = scriptsDir
+    opts['inputDir'] = inputDir
+    opts['outputDir'] = outputDir
+    opts['outfileName'] = outfileName
+    opts['PLOT_INTERMEDIATE_GRAPHS'] = FLAGS.secmet_plot_intermediate_graphs
+    matrix_file = vm_util.PrependTempDir(outfileName + '.csv')
+    opts['MatrixFile'] = matrix_file
+
+    benchmark_spec.attack_graph = attack_graph.AttackGraph(**opts)
 
 
 def Run(benchmark_spec):
@@ -69,59 +93,14 @@ def Run(benchmark_spec):
   """
   results = []
 
-  def _RunTest():
-
-    if not benchmark_spec.attack_graph:
-      inputDir = data.ResourcePath('attack_graphs')
-      outputDir = vm_util.GetTempDir()
-      outfileName = os.path.splitext(FLAGS.input_file)[0]  # 'input'
-      scriptsDir = data.ResourcePath('secmet')
-      # pathlib.Path(FLAGS.output_dir).mkdir(parents=True, exist_ok=True)
-
-      opts = dict()
-      opts['scriptsDir'] = scriptsDir
-      opts['inputDir'] = inputDir
-      opts['outputDir'] = outputDir
-      opts['outfileName'] = outfileName
-      opts['PLOT_INTERMEDIATE_GRAPHS'] = FLAGS.secmet_plot_intermediate_graphs
-      matrix_file = vm_util.PrependTempDir(outfileName + '.csv')
-      opts['MatrixFile'] = matrix_file
-
-      benchmark_spec.attack_graph = genTransMatrix.AttackGraph(**opts)
-
-    A = benchmark_spec.attack_graph
-    A.name = outfileName
-    if opts['PLOT_INTERMEDIATE_GRAPHS']:
-      A.plot2(outfilename=A.name + '_001_orig.png')
-    # tgraph, tmatrix, nodelist = A.getTransMatrix(**opts)
-    tgraph = A.getReducedGraph(**opts)
-    tgraph.scoreTGraph(**opts)
-    tgraph.weighTGraph(**opts)
-    tgraph.remove_node(tgraph.origin)
-    tmatrix, nodelist = tgraph.convertTMatrix()
-    tm = tmatrix.todense()
-
-    # mttf = sum(1/\lambda)
-    mttf = 1/(1-np.diag(tm)[:-1])
-    # print(mttf, sum(mttf))
-
-    print(tm)
-    # mc = pydtmc.markov_chain.MarkovChain(tm, nodelist)
-    mc = pydtmc.markov_chain.MarkovChain.from_matrix(tm, nodelist)
-
-    metadata = {# The meta data defining the environment
-        'cite_key': CITATION_SHORT,
-        'citation':         CITATION_FULL,
-        'attack_graph_name': A.name,
-        'tmatrix_headers': json.dumps(nodelist),
-        'tmatrix_probs': json.dumps(tmatrix.todense().tolist()),
-        'mttf': json.dumps(mttf.tolist()),
-    }
-    return sample.Sample('MTTF',sum(mttf), 'MTTF', metadata)
-  results.append(_RunTest())
+  metric = mttf.mttf_metric()
+  metric.ag = benchmark_spec.attack_graph
+  value, metadata = metric.calculate()
+  results.append(
+    sample.Sample(metric.METRIC_NAME, value,
+                  metric.METRIC_UNIT, metadata))
   # print(results)
   return results
-
 
 
 def Cleanup(unused_benchmark_spec):

@@ -1,5 +1,4 @@
 """Security Metric"""
-
 import os
 # import pathlib
 import networkx
@@ -7,7 +6,6 @@ from networkx.readwrite import json_graph
 import json
 
 import pprint
-
 pp = pprint.PrettyPrinter(indent=2)
 
 # from py_mulval import configs
@@ -22,24 +20,26 @@ from py_mulval.metrics.security_metric import AGBasedSecMet
 
 FLAGS = flags.FLAGS
 
-METRIC_NAME = "mttf"
+METRIC_NAME = "metf_tm"
 USAGE = """Accepts an attack graph and the node to start from, or looks for 
 the origin if no node provided"""
-CITATION_SHORT = 'dacier1996'
-CITATION_FULL = """Marc Dacier, Yves Deswarte, and Mohamed Kaâniche. 1996. 
-Quantitative assessment of operational security: Models and tools. 
-Information Systems Security, ed. by SK Katsikas and D. Gritzalis, London, 
-Chapman & Hall (1996), 179–86."""
-METRIC_UNIT = "weeks"
-METRIC_SUMMARY = """"Mean Time To Failure
+METRIC_UNIT = "effs"
+METRIC_SUMMARY = """"Mean Effort To Failure
 
 Determines the survival function complement from reliability engineering. 
 """
+CITATION_SHORT = 'Ortalo1999'
+CITATION_FULL = """Rodolphe Ortalo, Yves Deswarte, and Mohamed Kaâniche. 1999. Experimenting with quantitative evaluation tools for monitoring operational security. IEEE Transactions on Software Engineering 25, 5 (1999), 633–650.
+"""
 
-SCORE_MAP = 'cvss2time'
+SCORE_MAP = 'cvss2effort'
 
 
-class mttf_metric(AGBasedSecMet):
+
+USAGE = """"""
+
+
+class metf_tm_metric(AGBasedSecMet):
 
   def __init__(self) -> None:
     self.METRIC_NAME = METRIC_NAME
@@ -49,63 +49,50 @@ class mttf_metric(AGBasedSecMet):
     self.CITATION_FULL = CITATION_FULL
     self.METRIC_SUMMARY = METRIC_SUMMARY
 
-    super(mttf_metric, self).__init__()
-
-  #
-  def getMetaData(self):
-    metadata = {  # The meta data defining the environment
-        'cite_key':          self.CITATION_SHORT,
-        'citation':          self.CITATION_FULL,
-        'metric_name':       self.METRIC_NAME, 'usage': self.USAGE,
-        'metric_unit':       self.METRIC_UNIT,
-        'metric_summary':    self.METRIC_SUMMARY,
-        'attack_graph_name': self.ag.name, }
-    return metadata
+    super(metf_tm_metric, self).__init__()
 
   def calculate(self):
 
-    def mttf(A, n=None):
-      """Calculates MTTF for a weighted DAG
+    def metf(A, n=None):
+      """Calculates METF for a weighted DAG
 
-      MTTF_k = T_k + sum_{L \in out edges}(P_{kL} x MTTF_kL)
+      METF_k = T_k + sum_{L \in out edges}(P_{kL} x METF_kL)
                                   | P_kL = lambda_{kL} x T_k
                                   | T_k = 1/ lP_kL = lambda_{kL} x T_kambda_{out rates}
 
       :param A: attack graph
       :param n: node (start at origin if none)
-      :return: MTTF
+      :return: METF
       """
-      metadata = {}
 
-      # init if not done already
-      # for n in A.nodes():
       if not n:
         n = A.origin
       if 't_k' not in A.nodes[n].keys():
         scores = A.getOutEdgeValsForKey(n, 'score')  # edge scores should be (mapped) transition rates
         A.nodes[n]['t_k'] = 1 / sum(A.getOutEdgeValsForKey(n, 'score')) if scores else 0
-      if 'mttf' not in A.nodes[n].keys():
-          A.nodes[n]['mttf'] = None
+      if 'metf' not in A.nodes[n].keys():
+          A.nodes[n]['metf'] = None
 
       o_edges = [((u, v, k), e) for u, v, k, e in # grab our outbound edges
                  A.out_edges(n, keys=True, data=True)]
 
-      p_sums = 0 # collects (P_{kL} x MTTF_kL) terms
+      p_sums = 0 # collects (P_{kL} x metf_kL) terms
       for (u, v, k), e in o_edges:
-        if 'mttf' not in A.nodes[v].keys():
-          A.nodes[v]['mttf'] = mttf(A, v)  # gets target mttf from far away
+        if 'metf' not in A.nodes[v].keys():
+          A.nodes[v]['metf'] = metf(A, v)  # gets target metf from far away
         P = A[u][v][k]['score'] * A.nodes[n]['t_k']  # P_kL = lambda_{kL} x T_k
-        p_sums += P * A.nodes[v]['mttf']
+        p_sums += P * A.nodes[v]['metf']
 
-      A.nodes[n]['mttf'] = A.nodes[n]['t_k'] + p_sums # mttf for this node
-      metadata.update({
-          'mttf': A.nodes[n]['mttf']
-      })
+      A.nodes[n]['metf'] = A.nodes[n]['t_k'] + p_sums # metf for this node
+      # metadata.update({
+      #     'metf': A.nodes[n]['metf']
+      # })
 
-      return A.nodes[n]['mttf'] #, metadata
+      return A.nodes[n]['metf'] #, metadata
 
     self.CheckPreReqs()
     A = self.ag
+
     A.name = os.path.splitext(FLAGS.input_file)[0]
     if FLAGS.secmet_plot_intermediate_graphs:
       A.plot2(outfilename=A.name + '_001_orig.png')
@@ -120,7 +107,7 @@ class mttf_metric(AGBasedSecMet):
 
 
     # reduced_ag.setEdgeScores()
-    mttf = mttf(reduced_ag)
+    value = metf(reduced_ag)
 
     metadata = self.getMetaData()
     # metadata.update(**run_metadata)
@@ -130,10 +117,10 @@ class mttf_metric(AGBasedSecMet):
     #     #   passjson.dumps(json_graph.node_link_data(A)),
     #     # 'attack_graph_reduced': json.dumps(json_graph.node_link_data(tgraph)),
     #     # 'all_paths_before': json.dumps(shortest_path_before),
-    #     'mttf': mttf, # 'all_shortest_paths':   shortest_paths,
+    #     'metf_tm': metf, # 'all_shortest_paths':   shortest_paths,
     #     # 'shortest_path_length': shortest_path_length,
     #     # 'shortest_path_after': shortest_path_length_after,
     #     # 'shortest_path_length_after': len(shortest_path_length_after),
     #     # 'transition_matrix':   json.dumps(tmatrix.todense().tolist()),
     # })
-    return mttf, metadata
+    return value, metadata
