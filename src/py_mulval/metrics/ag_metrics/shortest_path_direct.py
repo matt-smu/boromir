@@ -30,8 +30,8 @@ CITATION_FULL = """Rodolphe Ortalo, Yves Deswarte, and Mohamed Kaâniche. 1999. 
 """
 
 
-SCORE_MAP = 'cvss2effort'
-
+# SCORE_MAP = 'cvss2effort'
+SCORE_MAP = 'cvss2time'
 
 class shortest_path_direct_metric(AGBasedSecMet):
 
@@ -74,9 +74,33 @@ class shortest_path_direct_metric(AGBasedSecMet):
     origin = reduced_ag.origin
     target = list(reduced_ag.getTargetByNoEgressEdges())[0]
 
-    shortest_path = networkx.shortest_path(reduced_ag, origin, target, weight='weight')
-    shortest_paths = list(networkx.all_shortest_paths(reduced_ag, origin, target, weight='weight'))
-    shortest_path_length =  networkx.shortest_path_length(reduced_ag, origin, target, weight='weight')
+    pw_dict = {}
+    paths = networkx.all_simple_paths(reduced_ag, origin, target)
+    for spath in paths:
+      for path in map(networkx.utils.pairwise, [spath]):
+        min_edge = {} # holds min {(u,v): weight} for each multi-edge pair
+        for pair in path:
+          pair_edges = reduced_ag.get_edge_data(pair[0], pair[1])
+          for k in pair_edges.keys():
+            if (pair[0], pair[1]) not in min_edge.keys() or min_edge[(pair[0], pair[1])] > pair_edges[k]['weight']:
+              min_edge[(pair[0], pair[1])] = pair_edges[k]['weight']
+      pw_dict[tuple(path)] = sum(min_edge.values())
+    shortest_path_length = min(pw_dict.values())
+    shortest_paths = [key for key in pw_dict if pw_dict[key] == shortest_path_length]
+
+    # for path in paths:
+    #   mttf_sum = 0
+    #   for n in path:
+    #     mttf_sum += reduced_ag.nodes[n]['mttf']
+    #     print(mttf_sum)
+    #   pw_dict.update({tuple(path): mttf_sum})
+    #   print(pw_dict)
+    # shortest_path_length = min(pw_dict.values())
+    # shortest_paths = [key for key in pw_dict if pw_dict[key] == shortest_path_length]
+
+    # shortest_path = networkx.shortest_path(reduced_ag, origin, target, weight='weight')
+    # shortest_paths = list(networkx.all_shortest_paths(reduced_ag, origin, target, weight='weight'))
+    # shortest_path_length pair_edges[k]['weight']=  networkx.shortest_path_length(reduced_ag, origin, target, weight='weight')
 
 
 
@@ -88,7 +112,7 @@ class shortest_path_direct_metric(AGBasedSecMet):
   #   passjson.dumps(json_graph.node_link_data(A)),
         # 'attack_graph_reduced': json.dumps(json_graph.node_link_data(tgraph)),
         # 'all_paths_before': json.dumps(shortest_path_before),
-        'shortest_path': shortest_path,
+        # 'shortest_path': shortest_path,
         'all_shortest_paths': shortest_paths,
         'shortest_path_length': shortest_path_length,
         # 'shortest_path_after': shortest_path_length_after,
