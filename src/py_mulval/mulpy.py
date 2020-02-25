@@ -42,8 +42,8 @@ Usage: graph_gen.sh [-r|--rule rulefile]
 #####
 # Mulpy Flags
 #####
-flags.DEFINE_string('run_id', None, 'Unique ID for this run.')
-flags.DEFINE_string('base_dir', None, 'Working dir. Default: /tmp/<run_id>/')
+# flags.DEFINE_string('run_uri', None, 'Unique ID for this run.')
+flags.DEFINE_string('base_dir', None, 'Working dir. Default: /tmp/<run_uri>/')
 flags.DEFINE_string('data_dir', None, 'Directory to find scripts, ymls, etc.')
 flags.DEFINE_string('models_dir', None, 'Prefix model files with this path.')
 flags.DEFINE_string('rules_dir', None, 'Prefix rule files with this path.')
@@ -57,7 +57,7 @@ def _GetTempDir():
 def _SetBaseDir():
   if not FLAGS.base_dir:
     FLAGS.base_dir = SEP.join((_GetTempDir(), 'mulpy'))
-  FLAGS.base_dir = SEP.join((FLAGS.base_dir, FLAGS.run_id))
+  FLAGS.base_dir = SEP.join((FLAGS.base_dir, FLAGS.run_uri))
   logging.info('Base directory set to: {}'.format(FLAGS.base_dir))
   if not pathlib.Path(FLAGS.base_dir).exists():
     pathlib.Path(FLAGS.base_dir).mkdir(parents=True, exist_ok=True)
@@ -111,18 +111,18 @@ def _ParseFlags(argv=sys.argv):
 
 
 def InitRunID():
-  FLAGS.run_id = str(uuid.uuid4())[-8:]
-  logging.info('Run ID initialized: {}'.format(FLAGS.run_id))
+  FLAGS.run_uri = str(uuid.uuid4())[-8:]
+  logging.info('Run ID initialized: {}'.format(FLAGS.run_uri))
 
 
 def SetupMulpy():
   logging.info('Setting up Mulpy environment...')
   InitRunID()
   _SetBaseDir()
-  # setup logging once we have a run_id and base dir
+  # setup logging once we have a run_uri and base dir
   log_util.ConfigureLogging(logging.DEBUG,
                             SEP.join((FLAGS.base_dir, 'cat-dog.log')),
-                            FLAGS.run_id)
+                            FLAGS.run_uri)
   # try to get cli into main log... not always trustworthy
   logging.info('running command line: %s' % ' '.join(sys.argv))
   _SetModelsDir()
@@ -256,7 +256,7 @@ def PublishRunStartedSample():
   }
   collector.AddSamples(
       [sample.Sample('Run Started', 1, 'Run Started', metadata)],
-      FLAGS.run_id, FLAGS.run_id)
+      FLAGS.run_uri, FLAGS.run_uri)
   collector.PublishSamples()
 
 

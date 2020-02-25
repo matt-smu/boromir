@@ -814,7 +814,7 @@ class InfluxDBPublisher(SamplePublisher):
 
   def _WriteData(self, data):
     successful_http_request_codes = [200, 202, 204]
-    params = data
+    params = data.encode('utf-8')
     header = {"Content-type": "application/octet-stream"}
     conn = httplib.HTTPConnection(self.influx_uri)
     conn.request('POST', '/write?' + 'db=' + self.influx_db_name, params,
@@ -937,7 +937,7 @@ class SampleCollector(object):
       sample['product_name'] = FLAGS.product_name
       sample['official'] = FLAGS.official
       sample['owner'] = 'cat-dog'
-      sample['run_id'] = FLAGS.run_id
+      sample['run_uri'] = FLAGS.run_uri
       sample['sample_uri'] = str(uuid.uuid4())
       self.samples.append(sample)
 
