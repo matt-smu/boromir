@@ -163,7 +163,7 @@ def Run(benchmark_spec):
     #     'num_paths_reduced': len(all_paths_after),
     #     # 'transition_matrix':   json.dumps(tmatrix.todense().tolist()),
     # }
-    return sample.Sample(num_paths.METRIC_NAME, value, num_paths.METRIC_UNIT, metadata)
+    return sample.Sample(m.METRIC_NAME, value, m.METRIC_UNIT, metadata)
   results.append(_RunTest())
   print(results)
   return results

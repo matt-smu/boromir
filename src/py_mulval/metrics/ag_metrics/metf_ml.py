@@ -33,16 +33,6 @@ SCORE_MAP = 'cvss2effort'
 class metf_ml_metric(AGBasedSecMet):
 
   def __init__(self) -> None:
-    # print(secmet.metadata)
-    # print(self.getMetaData())
-
-    self.METRIC_NAME = METRIC_NAME
-    self.METRIC_UNIT = METRIC_UNIT
-    self.USAGE = USAGE
-    self.CITATION_SHORT = CITATION_SHORT
-    self.CITATION_FULL = CITATION_FULL
-    self.METRIC_SUMMARY = METRIC_SUMMARY
-
     super(metf_ml_metric, self).__init__()
 
   def calculate(self):

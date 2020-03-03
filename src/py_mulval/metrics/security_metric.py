@@ -2,7 +2,8 @@ from uuid import uuid4
 import sys
 from py_mulval import errors
 
-METRIC_NAME = None
+# These module vars should describe the metric
+METRIC_NAME = None  # required for benchmark naming, should be unique
 METRIC_UNIT = None
 METRIC_SUMMARY = None
 CITATION_SHORT = None
@@ -10,12 +11,19 @@ CITATION_FULL = None
 USAGE = None
 
 
-
-
 class BaseSecurityMetric(object):
   """Object representing a base security metric."""
 
-  def __init__(self):
+  def __init__(self) -> None: # https://refactoring.guru/design-patterns/builder/python/example
+    # Set instance properties to whatever they are down there
+    current_module = sys.modules[self.__class__.__module__]
+    self.METRIC_NAME = current_module.METRIC_NAME
+    self.METRIC_UNIT = current_module.METRIC_UNIT
+    self.USAGE = current_module.USAGE
+    self.CITATION_SHORT = current_module.CITATION_SHORT
+    self.CITATION_FULL = current_module.CITATION_FULL
+    self.METRIC_SUMMARY = current_module.METRIC_SUMMARY
+
     super().__init__()
 
   def CheckPreReqs(self):
@@ -29,16 +37,17 @@ class BaseSecurityMetric(object):
         'cite_key': self.CITATION_SHORT,
         'citation': self.CITATION_FULL,
         'metric_usage': self.USAGE,
-        # 'metric_name': METRIC_NAME,
-        # 'metric_unit': METRIC_UNIT,
-        # 'metric_summary': METRIC_SUMMARY,
-        # 'cite_key': CITATION_SHORT,
-        # 'citation': CITATION_FULL,
-        # 'metric_usage': USAGE,
     }
     return metadata
 
   def getUnique(self, slice=8):
+    """ Gets a unique value for suffixes and such. @TODO seed this properly
+    :param slice: The bits off the end of UUID4 needed
+    :return: unique value
+    """
+    rd = random.Random()
+    rd.seed(0)
+    uuid.uuid4 = lambda: uuid.UUID(int=rd.getrandbits(128))
     return str(uuid.uuid4())[:slice]
 
   def calculate(self):

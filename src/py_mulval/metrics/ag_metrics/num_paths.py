@@ -21,14 +21,11 @@ CITATION_FULL = """Rodolphe Ortalo, Yves Deswarte, and Mohamed Kaâniche. 1999. 
 
 class num_paths_metric(AGBasedSecMet):
 
-  def __init__(self) -> None:
+  def __init__(self):
     super(num_paths_metric, self).__init__()
 
-  #
-  # def getMetaData(self):
-  #   return super.getMetaData()
-
   def calculate(self):
+    # self.set_headers()
     self.CheckPreReqs()
 
     origin = list(self.ag.getOriginnodesByAttackerLocated())[0]
@@ -39,12 +36,6 @@ class num_paths_metric(AGBasedSecMet):
     all_paths_after = list(networkx.all_simple_paths(self.tgraph,nodelist_post_reduce[0],nodelist_post_reduce[-1]))
     metadata = self.getMetaData()
     metadata.update({
-        'metric_name': METRIC_NAME,
-        'metric_unit': METRIC_UNIT,
-        'metric_summary': METRIC_SUMMARY,
-        'cite_key': CITATION_SHORT,
-        'citation': CITATION_FULL,
-        'metric_usage': USAGE,
         'all_paths_original': json.dumps(all_paths_before),
         'all_paths_reduced': json.dumps(all_paths_after),
         'num_paths_original': len(all_paths_before),

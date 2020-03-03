@@ -40,25 +40,9 @@ SCORE_MAP = 'cvss2time'
 class mttf_metric(AGBasedSecMet):
 
   def __init__(self) -> None:
-    self.METRIC_NAME = METRIC_NAME
-    self.METRIC_UNIT = METRIC_UNIT
-    self.USAGE = USAGE
-    self.CITATION_SHORT = CITATION_SHORT
-    self.CITATION_FULL = CITATION_FULL
-    self.METRIC_SUMMARY = METRIC_SUMMARY
 
     super(mttf_metric, self).__init__()
 
-  #
-  def getMetaData(self):
-    metadata = {  # The meta data defining the environment
-        'cite_key':          self.CITATION_SHORT,
-        'citation':          self.CITATION_FULL,
-        'metric_name':       self.METRIC_NAME, 'usage': self.USAGE,
-        'metric_unit':       self.METRIC_UNIT,
-        'metric_summary':    self.METRIC_SUMMARY,
-        'attack_graph_name': self.ag.name, }
-    return metadata
 
   def calculate(self):
 
