@@ -30,7 +30,7 @@ from py_mulval import sample
 from py_mulval import vm_util
 
 from py_mulval.metrics.ag_metrics import mttf
-
+import py_mulval.metrics
 FLAGS = flags.FLAGS
 
 BENCHMARK_NAME = 'mttf'
@@ -47,14 +47,6 @@ mttf:
     # output_dir: 
   # vm_groups:
 """
-
-CITATION_SHORT = 'Dacier1996'
-CITATION_FULL = """[1]Marc Dacier, Yves Deswarte, and Mohamed Kaâniche. 1996. Quantitative assessment of operational security: Models and tools. Information Systems Security, ed. by SK Katsikas and D. Gritzalis, London, Chapman & Hall (1996), 179–86.
-"""
-
-# flags.DEFINE_string('mttf_ag_path', None, 'use this attack graph')
-
-
 
 def GetConfig(user_config):
   return configs.LoadConfig(BENCHMARK_CONFIG, user_config, BENCHMARK_NAME)
@@ -96,6 +88,11 @@ def Run(benchmark_spec):
   metric = mttf.mttf_metric()
   metric.ag = benchmark_spec.attack_graph
   value, metadata = metric.calculate()
+  # metadata.update(py_mulval.metrics.flags)
+  # print(flags.FLAGS.flag_values_dict())
+  print(flags.FLAGS.find_module_defining_flag('secmet_ag_path'))
+  # print(flags.FLAGS.flags_into_string())
+  print(FLAGS.main_module_help())
   results.append(
     sample.Sample(metric.METRIC_NAME, value,
                   metric.METRIC_UNIT, metadata))

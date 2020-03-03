@@ -1,5 +1,5 @@
 from uuid import uuid4
-
+import sys
 from py_mulval import errors
 
 METRIC_NAME = None
@@ -8,6 +8,9 @@ METRIC_SUMMARY = None
 CITATION_SHORT = None
 CITATION_FULL = None
 USAGE = None
+
+
+
 
 class BaseSecurityMetric(object):
   """Object representing a base security metric."""
@@ -20,12 +23,18 @@ class BaseSecurityMetric(object):
 
   def getMetaData(self):
     metadata = {  # The meta data defining the environment
-        'metric_name': METRIC_NAME,
-        'metric_unit': METRIC_UNIT,
-        'metric_summary': METRIC_SUMMARY,
-        'cite_key': CITATION_SHORT,
-        'citation': CITATION_FULL,
-        'metric_usage': USAGE,
+        'metric_name': self.METRIC_NAME,
+        'metric_unit': self.METRIC_UNIT,
+        'metric_summary': self.METRIC_SUMMARY,
+        'cite_key': self.CITATION_SHORT,
+        'citation': self.CITATION_FULL,
+        'metric_usage': self.USAGE,
+        # 'metric_name': METRIC_NAME,
+        # 'metric_unit': METRIC_UNIT,
+        # 'metric_summary': METRIC_SUMMARY,
+        # 'cite_key': CITATION_SHORT,
+        # 'citation': CITATION_FULL,
+        # 'metric_usage': USAGE,
     }
     return metadata
 
@@ -34,7 +43,6 @@ class BaseSecurityMetric(object):
 
   def calculate(self):
     pass
-
 
 class AGBasedSecMet(BaseSecurityMetric):
 

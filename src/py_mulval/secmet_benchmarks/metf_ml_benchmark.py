@@ -48,9 +48,6 @@ metf_ml:
   # vm_groups:
 """
 
-CITATION_SHORT = 'Ortalo'
-CITATION_FULL = """[1]Marc Dacier, Yves Deswarte, and Mohamed Kaâniche. 1996. Quantitative assessment of operational security: Models and tools. Information Systems Security, ed. by SK Katsikas and D. Gritzalis, London, Chapman & Hall (1996), 179–86.
-"""
 
 def GetConfig(user_config):
   return configs.LoadConfig(BENCHMARK_CONFIG, user_config, BENCHMARK_NAME)
@@ -88,10 +85,10 @@ def Run(benchmark_spec):
     A list of sample.Sample objects with the benchmark results.
   """
   results = []
-
   metric = metf_ml.metf_ml_metric()
   metric.ag = benchmark_spec.attack_graph
   value, metadata = metric.calculate()
+  print(metadata)
   results.append(
     sample.Sample(metric.METRIC_NAME, value,
                   metric.METRIC_UNIT, metadata))

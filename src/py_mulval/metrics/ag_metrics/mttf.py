@@ -31,9 +31,7 @@ Quantitative assessment of operational security: Models and tools.
 Information Systems Security, ed. by SK Katsikas and D. Gritzalis, London, 
 Chapman & Hall (1996), 179–86."""
 METRIC_UNIT = "weeks"
-METRIC_SUMMARY = """"Mean Time To Failure
-
-Determines the survival function complement from reliability engineering. 
+METRIC_SUMMARY = """"Mean Time To Failure: Determines the survival function complement from reliability engineering. 
 """
 
 SCORE_MAP = 'cvss2time'
@@ -75,7 +73,6 @@ class mttf_metric(AGBasedSecMet):
       :param n: node (start at origin if none)
       :return: MTTF
       """
-      metadata = {}
 
       # init if not done already
       # for n in A.nodes():
@@ -98,11 +95,8 @@ class mttf_metric(AGBasedSecMet):
         p_sums += P * A.nodes[v]['mttf']
 
       A.nodes[n]['mttf'] = A.nodes[n]['t_k'] + p_sums # mttf for this node
-      metadata.update({
-          'mttf': A.nodes[n]['mttf']
-      })
 
-      return A.nodes[n]['mttf'] #, metadata
+      return A.nodes[n]['mttf']
 
     self.CheckPreReqs()
     A = self.ag

@@ -779,6 +779,7 @@ class InfluxDBPublisher(SamplePublisher):
 
     sample_constructed_body = '%s,%s %s %s' % (measurement, tag_set,
                                                field_set, timestamp)
+    print(sample_constructed_body)
     return sample_constructed_body
 
   def _FormatToKeyValue(self, sample):

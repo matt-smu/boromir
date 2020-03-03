@@ -25,9 +25,7 @@ USAGE = """"""
 CITATION_SHORT = 'dacier1996'
 CITATION_FULL = """Marc Dacier, Yves Deswarte, and Mohamed Kaâniche. 1996. Quantitative assessment of operational security: Models and tools. Information Systems Security, ed. by SK Katsikas and D. Gritzalis, London, Chapman & Hall (1996), 179–86."""
 METRIC_UNIT = "weeks"
-METRIC_SUMMARY = """The shortest path is the one which allows to reach the
-target with the lowest cumulated difficulty.[dacier1996]"""
-
+METRIC_SUMMARY = """The shortest path is the one which allows to reach the target with the lowest cumulated difficulty.[dacier1996]"""
 SCORE_MAP = 'cvss2time'
 
 

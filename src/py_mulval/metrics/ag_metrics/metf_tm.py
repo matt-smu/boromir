@@ -19,25 +19,15 @@ from py_mulval import attack_graph
 from py_mulval.metrics.security_metric import AGBasedSecMet
 
 FLAGS = flags.FLAGS
-
 METRIC_NAME = "metf_tm"
-USAGE = """Accepts an attack graph and the node to start from, or looks for 
-the origin if no node provided"""
+USAGE = """Accepts an attack graph and the node to start from, or looks for the origin if no node provided"""
 METRIC_UNIT = "effs"
-METRIC_SUMMARY = """"Mean Effort To Failure
-
-Determines the survival function complement from reliability engineering. 
-"""
+METRIC_SUMMARY = """"Mean Effort To Failure - Determines the survival function complement from reliability engineering."""
 CITATION_SHORT = 'Ortalo1999'
 CITATION_FULL = """Rodolphe Ortalo, Yves Deswarte, and Mohamed Kaâniche. 1999. Experimenting with quantitative evaluation tools for monitoring operational security. IEEE Transactions on Software Engineering 25, 5 (1999), 633–650.
 """
 
 SCORE_MAP = 'cvss2effort'
-
-
-
-USAGE = """"""
-
 
 class metf_tm_metric(AGBasedSecMet):
 
