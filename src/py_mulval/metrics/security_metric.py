@@ -2,7 +2,7 @@ from uuid import uuid4
 import sys
 from py_mulval import errors
 
-# These module vars should describe the metric
+# These module vars should describe the metric and get included in the metadata
 METRIC_NAME = None  # required for benchmark naming, should be unique
 METRIC_UNIT = None
 METRIC_SUMMARY = None

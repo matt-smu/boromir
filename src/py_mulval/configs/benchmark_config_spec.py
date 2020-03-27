@@ -25,7 +25,10 @@ from __future__ import print_function
 from py_mulval import errors
 from py_mulval import flag_util
 from py_mulval.configs import option_decoders
+from py_mulval import os_types
+from py_mulval import providers
 from py_mulval.configs import spec
+
 
 
 import contextlib
@@ -78,11 +81,11 @@ class _VmGroupSpec(spec.BaseSpec):
       raise errors.Config.MissingOption(
           '{0}.cloud is "{1}", but {0}.vm_spec does not contain a '
           'configuration for "{1}".'.format(component_full_name, self.cloud))
-    vm_spec_class = virtual_machine.GetVmSpecClass(self.cloud)
-    self.vm_spec = vm_spec_class(
-        '{0}.vm_spec.{1}'.format(component_full_name, self.cloud),
-        flag_values=flag_values,
-        **vm_config)
+    # vm_spec_class = virtual_machine.GetVmSpecClass(self.cloud)
+    # self.vm_spec = vm_spec_class(
+    #     '{0}.vm_spec.{1}'.format(component_full_name, self.cloud),
+    #     flag_values=flag_values,
+    #     **vm_config)
 
   @classmethod
   def _GetOptionDecoderConstructions(cls):
@@ -98,11 +101,11 @@ class _VmGroupSpec(spec.BaseSpec):
         'cloud': (option_decoders.EnumDecoder, {
             'valid_values': providers.VALID_CLOUDS
         }),
-        'disk_count': (option_decoders.IntDecoder, {
-            'default': _DEFAULT_DISK_COUNT,
-            'min': 0,
-            'none_ok': True
-        }),
+        # 'disk_count': (option_decoders.IntDecoder, {
+        #     'default': _DEFAULT_DISK_COUNT,
+        #     'min': 0,
+        #     'none_ok': True
+        # }),
         'disk_spec': (option_decoders.PerCloudConfigDecoder, {
             'default': None,
             'none_ok': True
@@ -110,11 +113,11 @@ class _VmGroupSpec(spec.BaseSpec):
         'os_type': (option_decoders.EnumDecoder, {
             'valid_values': os_types.ALL
         }),
-        'static_vms': (_StaticVmListDecoder, {}),
-        'vm_count': (option_decoders.IntDecoder, {
-            'default': _DEFAULT_VM_COUNT,
-            'min': 0
-        }),
+        # 'static_vms': (_StaticVmListDecoder, {}),
+        # 'vm_count': (option_decoders.IntDecoder, {
+        #     'default': _DEFAULT_VM_COUNT,
+        #     'min': 0
+        # }),
         'cidr': (option_decoders.StringDecoder, {
             'default': None
         }),

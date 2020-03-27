@@ -105,7 +105,7 @@ from py_mulval.publisher import SampleCollector
 import six
 from six.moves import zip
 
-LOG_FILE_NAME = 'pkb.log'
+LOG_FILE_NAME = 'boromir.log'
 COMPLETION_STATUS_FILE_NAME = 'completion_statuses.json'
 REQUIRED_INFO = ['scratch_disk', 'num_machines']
 REQUIRED_EXECUTABLES = frozenset(['ssh', 'ssh-keygen', 'scp', 'openssl'])
