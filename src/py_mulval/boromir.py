@@ -65,12 +65,15 @@ import itertools
 import json
 import logging
 import multiprocessing
-from os.path import isfile
 import random
 import re
 import sys
 import time
 import uuid
+from os.path import isfile
+
+import six
+from six.moves import zip
 
 # from py_mulval import archive
 from py_mulval import background_tasks
@@ -91,6 +94,7 @@ from py_mulval import os_types
 from py_mulval import package_lookup
 from py_mulval import requirements
 from py_mulval import sample
+from py_mulval import secmet_benchmarks
 # from py_mulval import spark_service
 from py_mulval import stages
 # from py_mulval import static_virtual_machine
@@ -98,12 +102,9 @@ from py_mulval import timing_util
 from py_mulval import traces
 from py_mulval import version
 from py_mulval import vm_util
-from py_mulval import secmet_benchmarks
 from py_mulval.configs import benchmark_config_spec
 # from py_mulval.linux_benchmarks import cluster_boot_benchmark
 from py_mulval.publisher import SampleCollector
-import six
-from six.moves import zip
 
 LOG_FILE_NAME = 'boromir.log'
 COMPLETION_STATUS_FILE_NAME = 'completion_statuses.json'
@@ -1103,7 +1104,7 @@ def RunBenchmarkTasksInSeries(tasks):
   return [func(*args, **kwargs) for func, args, kwargs in tasks]
 
 
-def RunBenchmarks():
+def RunBenchmarks(multirun_collector=None):
   """Runs all benchmarks in PerfKitBenchmarker.
 
   Returns:
@@ -1119,7 +1120,8 @@ def RunBenchmarks():
       print('')
     return 0
 
-  collector = SampleCollector()
+  collector = multirun_collector or SampleCollector()
+
   try:
     tasks = [(RunBenchmarkTask, (spec,), {})
              for spec in benchmark_specs]
@@ -1133,7 +1135,7 @@ def RunBenchmarks():
       collector.samples.extend(sample_list)
 
   finally:
-    if collector.samples:
+    if collector.samples and not multirun_collector:
       collector.PublishSamples()
 
     if benchmark_specs:
@@ -1242,9 +1244,10 @@ def Main():
   CheckVersionFlag()
   if FLAGS.boromir_run_count:
     SetUpPKB()
+    collector = SampleCollector()
     run_count = FLAGS.boromir_run_count
     for i in range(0, run_count):
-
-      all_good = RunBenchmarks()
+      all_good = RunBenchmarks(collector)
       if all_good == 1:
         return
+    collector.PublishSamples()
