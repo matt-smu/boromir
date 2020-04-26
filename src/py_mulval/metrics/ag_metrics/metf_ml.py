@@ -94,17 +94,4 @@ class metf_ml_metric(AGBasedSecMet):
     value = metf(reduced_ag)
 
     metadata = self.getMetaData()
-    # metadata.update(**run_metadata)
-    # metadata.update({  # 'attack_graph_original':
-    #     #
-    #     # def CheckPreReqs(self):
-    #     #   passjson.dumps(json_graph.node_link_data(A)),
-    #     # 'attack_graph_reduced': json.dumps(json_graph.node_link_data(tgraph)),
-    #     # 'all_paths_before': json.dumps(shortest_path_before),
-    #     'metf': metf, # 'all_shortest_paths':   shortest_paths,
-    #     # 'shortest_path_length': shortest_path_length,
-    #     # 'shortest_path_after': shortest_path_length_after,
-    #     # 'shortest_path_length_after': len(shortest_path_length_after),
-    #     # 'transition_matrix':   json.dumps(tmatrix.todense().tolist()),
-    # })
     return value, metadata

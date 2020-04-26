@@ -175,12 +175,12 @@ flags.DEFINE_boolean('use_pkb_logging', True, 'Whether to use PKB-specific '
                      'ABSL logging directly.')
 flags.DEFINE_boolean('log_dmesg', False, 'Whether to log dmesg from '
                      'each VM to the PKB log file before the VM is deleted.')
-
+flags.DEFINE_integer('boromir_run_count', 1, 'run this number of timws (for generating rangom samples', allow_override=True)
 
 def GetCurrentUser():
   """Get the current user name.
 
-  On some systems the current user information may be unavailable. In these
+  On somsecmet_fixe systems the current user information may be unavailable. In these
   cases we just need a string to tag the created resources with. It should
   not be a fatal error.
 
@@ -1240,5 +1240,11 @@ def Main():
     _PrintHelpMD(FLAGS.helpmatchmd)
     return 0
   CheckVersionFlag()
-  SetUpPKB()
-  return RunBenchmarks()
+  if FLAGS.boromir_run_count:
+    SetUpPKB()
+    run_count = FLAGS.boromir_run_count
+    for i in range(0, run_count):
+
+      all_good = RunBenchmarks()
+      if all_good == 1:
+        return

@@ -1,7 +1,8 @@
 # from unittest import TestCase
 
 """Tests for py_mulval.attack_graph."""
-
+from absl.testing import flagsaver
+import sys
 import networkx as nx
 
 from py_mulval import benchmark_spec
@@ -45,15 +46,13 @@ metf_ml:
 
 
 class _AttackGraphTestCase(common_test_case.CommonTestCase):
-
+  # @flagsaver.flagsaver(use_vpn=True, vpn_service_gateway_count=1)
   def setUp(self):
     super(_AttackGraphTestCase, self).setUp()
-    # FLAGS.cloud = providers.GCP
-    # FLAGS.os_type = os_types.DEBIAN
-    # FLAGS.temp_dir = 'tmp'
-    # p = mock.patch(util.__name__ + '.GetDefaultProject')
-    # p.start()
-    # self.addCleanup(p.stop)
+
+    if not sys.warnoptions:  # https://bugs.python.org/issue33154
+      import warnings
+      warnings.simplefilter("ignore", (ResourceWarning, DeprecationWarning))
     self.addCleanup(context.SetThreadBenchmarkSpec, None)
 
   def _CreateBenchmarkSpecFromYaml(self, yaml_string, benchmark_name=NAME):
@@ -70,6 +69,7 @@ class _AttackGraphTestCase(common_test_case.CommonTestCase):
 
 class TestAttackGraph(_AttackGraphTestCase):
   def test_load_score_dict(self):
+
     pass
   def test_load_dot_file(self):
     ag = AttackGraph()

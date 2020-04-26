@@ -1,18 +1,22 @@
 mttf:
-    flag_matrix: fmatrix
-    flag_matrix_defs:
-        fmatrix:
-            input_file: ['single_host_1.P', 'multi_host_1.P']
-            rule: ['local_exploit_rules.P']
-            secmet_map_scores: [ 'cvss2time', 'cvss2effort']
-            secmet_fix_cvss_score: [1, 2, 3, 4, 5, 6,  7, 8, 9, 10]
+#    flag_matrix: fmatrix
+#    flag_matrix_defs:
+#        fmatrix:
+#            input_file: ['single_host_1.P', 'multi_host_1.P']
+#            rule: ['local_exploit_rules.P']
+##            secmet_map_scores: [ 'cvss2time', 'cvss2effort']
+#            secmet_fix_cvss_score: [1, 2, 3, 4, 5, 6,  7, 8, 9, 10]
     flags:
-        secmet_score_strategy: 'reliability'
+#        secmet_score_strategy: 'reliability'
+
         secmet_plot_intermediate_graphs: False
+
         models_dir: /opt/projects/diss/py-mulval/data/models
         rules_dir: /opt/projects/diss/py-mulval/data/rules
         data_dir: /opt/projects/diss/py-mulval/data
         secmet_ag_path: AttackGraph.dot
+
+        secmet_random_cvss_score: True
 
         #    secmet_fix_cvss_score: 1
         #        secmet_map_scores: 'cvss2time'

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import logging
 import os
+import random
 import re
 import sys
 import warnings
@@ -112,6 +113,7 @@ class AttackGraph(nx.MultiDiGraph):
         self.node_list = []
         self.data = None
         self.fix_cvss_score = FLAGS.secmet_fix_cvss_score or None
+        self.random_cvss_score = FLAGS.secmet_random_cvss_score or None
         self.map_scores = FLAGS.secmet_map_scores if FLAGS.secmet_map_scores in SCORE_MAPS else None
         self.score_strategy = FLAGS.secmet_score_strategy or None
 
@@ -214,6 +216,8 @@ class AttackGraph(nx.MultiDiGraph):
         if self.fix_cvss_score:
             # return self.fix_cvss_score
             score = self.fix_cvss_score
+        elif self.random_cvss_score:
+            score = random.uniform(0,10)
         else:
         # score = 'null'  # the score to return
             con = None
@@ -300,6 +304,8 @@ class AttackGraph(nx.MultiDiGraph):
                     if xr in self.nodes[andNode]['label']:
                         if self.fix_cvss_score:
                             self.nodes[andNode]['exploit_rule_score'] = self.fix_cvss_score
+                        elif self.random_cvss_score:
+                            self.nodes[andNode]['exploit_rule_score'] = random.uniform(0, 10)
                         else:
                             self.nodes[andNode]['exploit_rule_score'] = self.exploit_rules[xr]
                             # logging.debug(('setting node to default exploit score: ', self.nodes[andNode]))

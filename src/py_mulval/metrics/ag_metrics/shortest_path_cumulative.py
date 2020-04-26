@@ -41,7 +41,7 @@ class shortest_path_metric(AGBasedSecMet):
 
     # @TODO Fix Dependency Handling in Metric Pipelines
     def mttf(A, n=None):
-      """Calculates MTTF for a weighted DAG
+      """Calculates Shortest Path (Cumulative) for a weighted DAG
 
       MTTF_k = T_k + sum_{L \in out edges}(P_{kL} x MTTF_kL)
                                   | P_kL = lambda_{kL} x T_k

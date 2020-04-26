@@ -6,14 +6,8 @@ import networkx
 from networkx.readwrite import json_graph
 import json
 
-# from py_mulval import configs
-# from py_mulval import data
 from py_mulval import flags
 from py_mulval import attack_graph
-# from py_mulval import mulpy
-# from py_mulval import py_mulval
-# from py_mulval import sample
-# from py_mulval import vm_util
 from py_mulval.metrics.security_metric import AGBasedSecMet
 
 
@@ -70,28 +64,9 @@ class shortest_path_direct_metric(AGBasedSecMet):
     shortest_path_length = min(pw_dict.values())
     shortest_paths = [key for key in pw_dict if pw_dict[key] == shortest_path_length]
 
-    # for path in paths:
-    #   mttf_sum = 0
-    #   for n in path:
-    #     mttf_sum += reduced_ag.nodes[n]['mttf']
-    #     print(mttf_sum)
-    #   pw_dict.update({tuple(path): mttf_sum})
-    #   print(pw_dict)
-    # shortest_path_length = min(pw_dict.values())
-    # shortest_paths = [key for key in pw_dict if pw_dict[key] == shortest_path_length]
-
-    # shortest_path = networkx.shortest_path(reduced_ag, origin, target, weight='weight')
-    # shortest_paths = list(networkx.all_shortest_paths(reduced_ag, origin, target, weight='weight'))
-    # shortest_path_length pair_edges[k]['weight']=  networkx.shortest_path_length(reduced_ag, origin, target, weight='weight')
-
-
 
     metadata = self.getMetaData()
     metadata.update({
-        # 'attack_graph_original':
-  #
-  # def CheckPreReqs(self):
-  #   passjson.dumps(json_graph.node_link_data(A)),
         # 'attack_graph_reduced': json.dumps(json_graph.node_link_data(tgraph)),
         # 'all_paths_before': json.dumps(shortest_path_before),
         # 'shortest_path': shortest_path,
