@@ -213,11 +213,12 @@ class AttackGraph(nx.MultiDiGraph):
 
     def getCVSSscore(self, cveid):
         score = None
+        score_orig = None
         if self.fix_cvss_score:
             # return self.fix_cvss_score
             score = self.fix_cvss_score
         elif self.random_cvss_score:
-            score = random.uniform(0,10)
+            score = round(random.uniform(0,10), 2)
         else:
         # score = 'null'  # the score to return
             con = None
@@ -250,8 +251,9 @@ class AttackGraph(nx.MultiDiGraph):
                     if con:
                         con.close()
         if self.map_scores:
+            score_orig = score
             score = self.mapScore(self.map_scores, score)
-        return score
+        return score, score_orig
 
     def mapScore(self, scoremap_string, score):
         if scoremap_string == CVSS2TIME_MAP:
@@ -305,16 +307,18 @@ class AttackGraph(nx.MultiDiGraph):
                         if self.fix_cvss_score:
                             self.nodes[andNode]['exploit_rule_score'] = self.fix_cvss_score
                         elif self.random_cvss_score:
-                            self.nodes[andNode]['exploit_rule_score'] = random.uniform(0, 10)
+                            self.nodes[andNode]['exploit_rule_score'] = round(random.uniform(0, 10), 2)
                         else:
                             self.nodes[andNode]['exploit_rule_score'] = self.exploit_rules[xr]
                             # logging.debug(('setting node to default exploit score: ', self.nodes[andNode]))
                         if self.map_scores:
+                            self.nodes[andNode]['exploit_rule_score_orig'] = self.nodes[andNode]['exploit_rule_score']
                             self.nodes[andNode]['exploit_rule_score'] = self.mapScore(self.map_scores, self.nodes[andNode]['exploit_rule_score'])
 
                 # look for cvss score in leafs
                 leafPreds = [n for n in self.predecessors(andNode) if self.nodes[n]['type'] == 'LEAF']
                 score = None
+                score_orig = None
                 for p in leafPreds:
                     matchObj = re.match(r'.*:vulExists\((.*),(.*),(.*),(.*),(.*)\):.*', self.nodes[p]['label'],
                                         re.M | re.I)
@@ -323,19 +327,22 @@ class AttackGraph(nx.MultiDiGraph):
                     if matchObj:
                         mycveid = matchObj.group(2).strip('\'')
                         # logging.debug(('finding score for cveid: ', mycveid))
-                        score = self.getCVSSscore(mycveid)
+                        score, score_orig = self.getCVSSscore(mycveid)
 
                 if score:
                     logging.debug(('score found, overwriting default for node: ', score,
                                    self.nodes[andNode]['exploit_rule_score'], andNode))
                     self.nodes[andNode]['exploit_rule_score'] = score
+                    if score_orig:
+                        self.nodes[andNode]['exploit_rule_score_orig'] = score_orig
+
                 else:
                     logging.debug(('no score found, preserving default', self.nodes[andNode]))
 
                 #  set outbound edge scores here
                 o_edges = [((u, v, k), e) for u, v, k, e in self.out_edges(andNode, keys=True, data=True)]
                 for ((u2, v2, k2), e2) in o_edges:
-                    self.setEdgeScore(u2, v2, k2, self.nodes[andNode]['exploit_rule_score'])
+                    self.setEdgeScore(u2, v2, k2, self.nodes[andNode]['exploit_rule_score'], self.nodes[andNode]['exploit_rule_score_orig'])
 
     def scoreANDs(self):
         """Normalizes the score in [0..1] with adjacent incoming node scores"""
@@ -556,9 +563,10 @@ class AttackGraph(nx.MultiDiGraph):
 
             logging.debug(('tgraph root node: ', self.origin))
 
-    def setEdgeScore(self, u, v, k, score, strategy=None):
+    def setEdgeScore(self, u, v, k, score, score_orig=None, strategy=None):
 
         self[u][v][k]['score'] = score
+        self[u][v][k]['score_orig'] = score_orig
         self[u][v][k]['weight'] = score
         self[u][v][k]['label'] = round(score, 2)
 

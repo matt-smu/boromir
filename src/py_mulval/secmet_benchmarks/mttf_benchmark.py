@@ -90,13 +90,13 @@ def Run(benchmark_spec):
   value, metadata = metric.calculate()
   # metadata.update(py_mulval.metrics.flags)
   # print(flags.FLAGS.flag_values_dict())
-  print(flags.FLAGS.find_module_defining_flag('secmet_ag_path'))
+  # print(flags.FLAGS.find_module_defining_flag('secmet_ag_path'))
   # print(flags.FLAGS.flags_into_string())
-  print(FLAGS.main_module_help())
+  # print(FLAGS.main_module_help())
   results.append(
     sample.Sample(metric.METRIC_NAME, value,
                   metric.METRIC_UNIT, metadata))
-  # print(results)
+
   return results
 
 

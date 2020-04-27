@@ -34,7 +34,7 @@ METRIC_UNIT = "weeks"
 METRIC_SUMMARY = """"Mean Time To Failure: Determines the survival function complement from reliability engineering. 
 """
 
-SCORE_MAP = 'cvss2time'
+# SCORE_MAP = 'cvss2time'
 
 
 class mttf_metric(AGBasedSecMet):
@@ -88,7 +88,7 @@ class mttf_metric(AGBasedSecMet):
     if FLAGS.secmet_plot_intermediate_graphs:
       A.plot2(outfilename=A.name + '_001_orig.png')
 
-    A.map_scores = SCORE_MAP
+    # A.map_scores = SCORE_MAP
 
     reduced_ag = A.getReducedGraph()
 
@@ -100,18 +100,23 @@ class mttf_metric(AGBasedSecMet):
     # reduced_ag.setEdgeScores()
     mttf = mttf(reduced_ag)
 
+
+    tmatrix = json.dumps(networkx.adjacency_matrix(reduced_ag, weight='score').todense().tolist())
+    tmatrix_raw = json.dumps( networkx.adjacency_matrix(reduced_ag, weight='score_orig').todense().tolist())
+
     metadata = self.getMetaData()
     # metadata.update(**run_metadata)
-    # metadata.update({  # 'attack_graph_original':
-    #     #
-    #     # def CheckPreReqs(self):
-    #     #   passjson.dumps(json_graph.node_link_data(A)),
-    #     # 'attack_graph_reduced': json.dumps(json_graph.node_link_data(tgraph)),
-    #     # 'all_paths_before': json.dumps(shortest_path_before),
-    #     'mttf': mttf, # 'all_shortest_paths':   shortest_paths,
-    #     # 'shortest_path_length': shortest_path_length,
-    #     # 'shortest_path_after': shortest_path_length_after,
-    #     # 'shortest_path_length_after': len(shortest_path_length_after),
-    #     # 'transition_matrix':   json.dumps(tmatrix.todense().tolist()),
-    # })
+    metadata.update({  # 'attack_graph_original':
+        #
+        # def CheckPreReqs(self):
+        #   passjson.dumps(json_graph.node_link_data(A)),
+        'attack_graph_reduced': json.dumps(json_graph.node_link_data(reduced_ag)),
+        # 'all_paths_before': json.dumps(shortest_path_before),
+        'mttf': mttf, # 'all_shortest_paths':   shortest_paths,
+        # 'shortest_path_length': shortest_path_length,
+        # 'shortest_path_after': shortest_path_length_after,
+        # 'shortest_path_length_after': len(shortest_path_length_after),
+        'transition_matrix':   tmatrix,
+        'transition_matrix_raw': tmatrix_raw,
+    })
     return mttf, metadata
