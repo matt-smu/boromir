@@ -100,9 +100,10 @@ class mttf_metric(AGBasedSecMet):
     # reduced_ag.setEdgeScores()
     mttf = mttf(reduced_ag)
 
-
+    print(reduced_ag.edges(data=True))
+    print(networkx.adjacency_matrix(reduced_ag, weight='score_orig'))
     tmatrix = json.dumps(networkx.adjacency_matrix(reduced_ag, weight='score').todense().tolist())
-    tmatrix_raw = json.dumps( networkx.adjacency_matrix(reduced_ag, weight='score_orig').todense().tolist())
+    tmatrix_raw = json.dumps(networkx.adjacency_matrix(reduced_ag, weight='score_orig').todense().tolist())
 
     metadata = self.getMetaData()
     # metadata.update(**run_metadata)

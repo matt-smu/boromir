@@ -1,6 +1,7 @@
 from uuid import uuid4
 import sys
 from py_mulval import errors
+from py_mulval import flag_util
 
 # These module vars should describe the metric and get included in the metadata
 METRIC_NAME = None  # required for benchmark naming, should be unique
@@ -38,6 +39,8 @@ class BaseSecurityMetric(object):
         'citation': self.CITATION_FULL,
         'metric_usage': self.USAGE,
     }
+    flags_sent = flag_util.GetProvidedCommandLineFlags()
+    metadata.update(flags_sent)
     return metadata
 
   def getUnique(self, slice=8):

@@ -1243,10 +1243,11 @@ def Main():
     return 0
   CheckVersionFlag()
   if FLAGS.boromir_run_count:
-    SetUpPKB()
+
     collector = SampleCollector()
     run_count = FLAGS.boromir_run_count
     for i in range(0, run_count):
+      SetUpPKB()
       all_good = RunBenchmarks(collector)
       if all_good == 1:
         return

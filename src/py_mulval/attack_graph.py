@@ -112,7 +112,7 @@ class AttackGraph(nx.MultiDiGraph):
         self.target = None
         self.node_list = []
         self.data = None
-        self.fix_cvss_score = FLAGS.secmet_fix_cvss_score or None
+        self.fix_cvss_score = FLAGS.secmet_fix_cvss_score if FLAGS.secmet_fix_cvss_score is not None else None
         self.random_cvss_score = FLAGS.secmet_random_cvss_score or None
         self.map_scores = FLAGS.secmet_map_scores if FLAGS.secmet_map_scores in SCORE_MAPS else None
         self.score_strategy = FLAGS.secmet_score_strategy or None
@@ -195,6 +195,7 @@ class AttackGraph(nx.MultiDiGraph):
                 self.nodes[node]['color'] = 'red'
                 self.nodes[node]['s'] = 'o'
                 self.nodes[node]['exploit_rule_score'] = None
+                self.nodes[node]['exploit_rule_score_orig'] = None
             elif self.nodes[node]['shape'] == 'box':
                 self.nodes[node]['type'] = 'LEAF'
                 self.nodes[node]['color'] = 'green'
@@ -214,7 +215,7 @@ class AttackGraph(nx.MultiDiGraph):
     def getCVSSscore(self, cveid):
         score = None
         score_orig = None
-        if self.fix_cvss_score:
+        if self.fix_cvss_score is not None:
             # return self.fix_cvss_score
             score = self.fix_cvss_score
         elif self.random_cvss_score:
@@ -239,20 +240,22 @@ class AttackGraph(nx.MultiDiGraph):
 
                     else:
                         logging.debug(('bad cveid (result unknown): setting CVSS to 1!!!**** [' + cveid + ']'))
-                        score = 1
+                        score = None
                 except MySQLdb.Error as e:
                     logging.debug(("Error %d: %s" % (e.args[0], e.args[1])))
 
                     # @TODO exit when not testing (uncomment)
                     # sys.exit(1)
                     logging.debug(('bad cveid (result unknown): setting CVSS to 1!!!**** [' + cveid + ']'))
-                    score = 1
+                    score = None
                 finally:
                     if con:
                         con.close()
         if self.map_scores:
             score_orig = score
             score = self.mapScore(self.map_scores, score)
+        else:
+            score_orig = score
         return score, score_orig
 
     def mapScore(self, scoremap_string, score):
@@ -304,15 +307,17 @@ class AttackGraph(nx.MultiDiGraph):
                 # logging.debug(('setting node to default exploit score: ', self.nodes[andNode]))
                 for xr in self.exploit_rules.keys():
                     if xr in self.nodes[andNode]['label']:
-                        if self.fix_cvss_score:
+                        if self.fix_cvss_score is not None:
                             self.nodes[andNode]['exploit_rule_score'] = self.fix_cvss_score
+                            self.nodes[andNode]['exploit_rule_score_orig'] = self.nodes[andNode]['exploit_rule_score']
                         elif self.random_cvss_score:
                             self.nodes[andNode]['exploit_rule_score'] = round(random.uniform(0, 10), 2)
+                            self.nodes[andNode]['exploit_rule_score_orig'] = self.nodes[andNode]['exploit_rule_score']
                         else:
                             self.nodes[andNode]['exploit_rule_score'] = self.exploit_rules[xr]
+                            self.nodes[andNode]['exploit_rule_score_orig'] = self.nodes[andNode]['exploit_rule_score']
                             # logging.debug(('setting node to default exploit score: ', self.nodes[andNode]))
                         if self.map_scores:
-                            self.nodes[andNode]['exploit_rule_score_orig'] = self.nodes[andNode]['exploit_rule_score']
                             self.nodes[andNode]['exploit_rule_score'] = self.mapScore(self.map_scores, self.nodes[andNode]['exploit_rule_score'])
 
                 # look for cvss score in leafs
@@ -329,11 +334,11 @@ class AttackGraph(nx.MultiDiGraph):
                         # logging.debug(('finding score for cveid: ', mycveid))
                         score, score_orig = self.getCVSSscore(mycveid)
 
-                if score:
+                if score is not None:
                     logging.debug(('score found, overwriting default for node: ', score,
                                    self.nodes[andNode]['exploit_rule_score'], andNode))
                     self.nodes[andNode]['exploit_rule_score'] = score
-                    if score_orig:
+                    if score_orig is not None:
                         self.nodes[andNode]['exploit_rule_score_orig'] = score_orig
 
                 else:
@@ -601,21 +606,25 @@ class AttackGraph(nx.MultiDiGraph):
             for (u, v, k), e in i_edges:
                 if 'score' not in self[u][v][k].keys():
                     self[u][v][k]['score'] = None
-                if self[u][v][k]['score']:
+                if 'score_orig' not in self[u][v][k].keys():
+                    self[u][v][k]['score_orig'] = None
+                if self[u][v][k]['score'] is not None:
                     self.nodes[n]['preds_sum'] += self[u][v][k]['score']
                 self.nodes[n]['preds_count'] += 1
 
             for (u, v, k), e in o_edges:
                 if 'score' not in self[u][v][k].keys():
                     self[u][v][k]['score'] = None
-                if self[u][v][k]['score']:
+                if 'score_orig' not in self[u][v][k].keys():
+                    self[u][v][k]['score_orig'] = None
+                if self[u][v][k]['score'] is not None:
                     self.nodes[n]['succs_sum'] += self[u][v][k]['score']
                 self.nodes[n]['succs_count'] += 1
 
 
             if not self.score_strategy:
                 denom = self.nodes[n]['succs_sum'] + self.nodes[n]['preds_sum']
-                self.setEdgeScore(n, n, self.getSelfEdge(n), self.nodes[n]['preds_sum'])
+                self.setEdgeScore(n, n, self.getSelfEdge(n), self.nodes[n]['preds_sum'], self.nodes[n]['preds_sum'])
                 logging.debug(("sums: node[{}] outsum[{}] insum[{}] denom[{}] selfedge[{}]".format(
                     n, self.nodes[n]['succs_sum'], self.nodes[n]['preds_sum'], denom,
                     self[n][n][self.getSelfEdge(n)]['score'])))
@@ -635,11 +644,12 @@ class AttackGraph(nx.MultiDiGraph):
                     o_edges = [((u, v, k), e) for u, v, k, e in self.out_edges(n, keys=True, data=True)]
 
                     for (u, v, k), e in o_edges:
-                        if self[u][v][k]['score']:
+                        if self[u][v][k]['score'] is not None:
                             self[u][v][k]['weight'] = self[u][v][k]['score'] / denom
                             self[u][v][k]['label'] = round(self[u][v][k]['score'] / denom, 2)
+                            self[u][v][k]['score_orig'] = self[u][v][k]['score']
                     # set self edge weight
-                    self.setEdgeScore(n, n, self.getSelfEdge(n), self.nodes[n]['preds_sum'] / denom)
+                    self.setEdgeScore(n, n, self.getSelfEdge(n), self.nodes[n]['preds_sum'] / denom) #, self.nodes[n]['score_orig'])
 
     def getSelfEdge(self, n):
         # assuming each node only has one selfloop
