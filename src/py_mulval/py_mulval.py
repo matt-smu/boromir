@@ -63,6 +63,9 @@ flags.DEFINE_bool('ma', True, 'metric artifacts')
 
 """
 Mulval facts for queries
+@TODO: Getting head:- pred should be possible using  `listing/1` in XSB (tested),
+but the py-xsb  bridge returns nothing, so fix this to make getting all asserted 
+clauses dynamic
 """
 # primitives
 # primitive(inCompetent(_principal)).
