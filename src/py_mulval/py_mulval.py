@@ -61,7 +61,83 @@ flags.DEFINE_bool('trimdom', True, 'trimdom', short_name='td')
 flags.DEFINE_bool('cvss', True, 'cvss')
 flags.DEFINE_bool('ma', True, 'metric artifacts')
 
+"""
+Mulval facts for queries
+"""
+# primitives
+# primitive(inCompetent(_principal)).
+# primitive(competent(_principal)).
+# primitive(clientProgram(_host, _programname)).
+# primitive(vulExists(_host, _vulID, _program)).
+# primitive(vulProperty(_vulID, _range, _consequence)).
+# primitive(hacl(_src, _dst, _prot, _port)).
+# primitive(attackerLocated(_host)).
+# primitive(hasAccount(_principal, _host, _account)).
+# primitive(networkServiceInfo(_host, _program, _protocol, _port, _user)).
+# primitive(setuidProgramInfo(_host, _program, _owner)).
+# primitive(nfsExportInfo(_server, _path, _access, _client)).
+# primitive(nfsMounted(_client, _clientpath, _server, _serverpath, _access)).
+# primitive(localFileProtection(_host, _user, _access, _path)).
+# primitive(dependsOn(_h, _program, _library)).
+# primitive(installed(_h, _program)).
+# primitive(bugHyp(_,_,_,_)).
+# primitive(vulExists(_machine,_vulID,_program,_range,_consequence)).
+# primitive(canAccessFile(_host, _user, _access, _path)).
+# primitive(isWebServer(_host)).
+# meta(cvss(_vulID, _ac)).
+inCompetent = 'inCompetent(A)'
+competent = 'competent(A) '
+clientProgram = 'clientProgram(A, B,)'
+vulExists = 'vulExists(A, B, C)'
+vulProperty = 'vulProperty(A, B, C)'
+hacl = 'hacl(A, B, C, D)'
+attackerLocated = 'attackerLocated(A)'
+hasAccount = 'hasAccount(A, B, C)'
+networkServiceInfo = 'networkServiceInfo(A, B, C, D, E)'
+setuidProgramInfo = 'setuidProgramInfo(A, B, C)'
+nfsExportInfo = 'nfsExportInfo(A, B, C, D)'
+nfsMounted = 'nfsMounted(A, B, C, D, E)'
+localFileProtection = 'localFileProtection(A, B, C, D)'
+dependsOn = 'dependsOn(A, B, C)'
+installed = 'installed(A, B)'
+bugHyp = 'bugHyp(A, B, C)'
+vulExists = 'vulExists(A, B, C, D, E)'
+canAccessFile = 'canAccessFile(A, B, C, D)'
+isWebServer = 'isWebServer(A)'
+# cvss = 'cvss(A, B,)'
+primitive = [inCompetent, competent, clientProgram, vulExists, vulProperty,
+             hacl, attackerLocated, hasAccount, networkServiceInfo,
+             setuidProgramInfo, nfsExportInfo, nfsMounted, localFileProtection,
+             dependsOn, installed, bugHyp, vulExists, canAccessFile,
+             isWebServer,]
 
+# derived
+# execCode/2.
+# netAccess/3.
+# canAccessHost/1.
+# canAccessFile/4.
+# accessFile/3.
+# principalCompromised/1.
+# vulExists/5.
+# logInService/3.
+execCode = 'execCode(A,B)'
+netaccess = 'netAccess(A,B,C)'
+canAccessHost = 'canAccessHost(A)'
+canAccessFile = 'canAccessFile(A,B,C,D)'
+accessFile = 'accessFile(A,B,C)'
+accessMaliciousInput = 'accessMaliciousInput(A,B,C)'
+principalCompromised = 'principalCompromised(A)'
+dos = 'dos(A)'
+vulExists = 'vulExists(A,B,C,D,E)'
+logInService = 'logInService(A,B,C)'
+advances = 'advances(A,B)'
+# attackGoal = 'attackGoal(A)'
+derived = [execCode, netaccess, canAccessHost, canAccessFile, dos, accessFile,
+           accessMaliciousInput, principalCompromised, vulExists, logInService,
+           advances, ]
+
+
+# print(x)
 
 class attack_graph(object):
 
@@ -128,9 +204,11 @@ class graph_gen(object):
     :param args:
     :param kwargs:
     """
+
     super(graph_gen, self)
-    self._input_file = INPUT_FILE if 'input_file' not in kwargs else kwargs.get(
-        'input_file')
+    self._input_file = FLAGS.input_file # not sure where this came from next line
+    # self._input_file = INPUT_FILE if 'input_file' not in kwargs else kwargs.get(
+    #     'input_file')
     # self._rule_files = FLAGS.rule  # kwargs.get('rulefile')
     # self.
     self._MULVALROOT = MULVALROOT if 'MULVALROOT' not in kwargs else kwargs.get(
@@ -195,9 +273,9 @@ class graph_gen(object):
 
   def graph_gen(self, *args, **kwargs):
     """
-    do the things graph_gen.sh does
+`    do the things graph_gen.sh does
     this should leave a trace_output.P
-    file in cwd that gets sent to attack_graph.cpp
+    file in cwd that gets sent to attack_graph.cpp`
     """
 
     _input_file = self._input_file
@@ -214,7 +292,8 @@ class graph_gen(object):
     logging.info('writing rule files to working directory %s...' % FLAGS.base_dir)
     self.rule_files.append(INTERACTIONRULES)  # @TODO cvss and ma checks
     # append RULES_DIR to rule files path... @TODO expect full path for each?
-    rulefiles = list((SEP.join((FLAGS.rules_dir, file)) for file in FLAGS.rule))
+    rulefiles = list((SEP.join((FLAGS.rules_dir, file)) for file in FLAGS.rule)) if FLAGS.rule else None
+    # if rulefiles:
     logging.debug('rulefiles to write from: %s ' % list(rulefiles))
     self.rule_files.append(*rulefiles)
     logging.debug('rule files: %s' % self.rule_files)
@@ -231,7 +310,7 @@ class graph_gen(object):
 
     logging.info('running mulval in xsb...')
     os.chdir(FLAGS.base_dir)
-    self.runMulVal()
+    # self.runMulVal()
 
   def writeRulesFile(self, _RULE_FILES, _RULE_FILES_ADDITIONAL):
     """@TODO needs logic for placement, tabling, validation"""
@@ -253,6 +332,51 @@ class graph_gen(object):
     '''
     with open(file_name, mode) as file:
       file.write(file_text)
+
+  def queryMulValFacts(self):
+    """Gets all facts for the current xsb session
+    """
+    import binascii
+    allfacts = {}
+
+    def parseRow(row):
+      results = []
+      for item in row:
+        if type(item) == XSBAtom:
+          results.append(item.name)
+        elif type(item) == XSBVariable:
+          results.append(('var', str(binascii.hexlify(bytes(item.name, 'utf-8')))))
+        else:
+          results.append(item)
+      return results
+
+    for q in primitive:
+      name = q[:q.index("(")]
+      rows = pyxsb_query('{}.'.format(q))
+      #     print('------{}-------'.format(name))
+      result = []
+      for row in rows:
+        items = parseRow(row)
+        result.append(items)
+      if name not in allfacts.keys():
+        allfacts[name] = []
+      allfacts[name].append(result)
+
+    for q in derived:
+      name = q[:q.index("(")]
+      rows = pyxsb_query('{}.'.format(q))
+      #     print('------{}-------'.format(name))
+      result = []
+      for row in rows:
+        print(row)
+        items = parseRow(row)
+        result.append(items)
+      if name not in allfacts.keys():
+        allfacts[name] = []
+      if allfacts[name] is not None:
+        allfacts[name].append(result)
+
+    return allfacts
 
   def runMulVal(self):
     pyxsb_start_session(XSB_ARCH_DIR)
@@ -297,6 +421,14 @@ class graph_gen(object):
     # c2p_string(b"run", p2p_arg(reg_term(1), 1))
     # xsb_command()
     pyxsb_command('[run].')
+
+    # dump facts to file before exit
+    facts_dict = self.queryMulValFacts()
+    factfile = SEP.join((FLAGS.base_dir,'mulval_facts.json'))
+
+    logging.debug('writing facts file to {}...'.format(factfile))
+    with open(factfile, 'w') as file:
+      json.dump(facts_dict, file)
 
     pyxsb_end_session()
 

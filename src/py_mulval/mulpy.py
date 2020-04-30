@@ -9,6 +9,7 @@ import sys
 import tempfile
 import uuid
 
+from py_mulval import boromir # importing flags only
 from py_mulval import flag_util
 from py_mulval import genTransMatrix
 from py_mulval import log_util
@@ -56,7 +57,7 @@ def _GetTempDir():
 
 def _SetBaseDir():
   if not FLAGS.base_dir:
-    FLAGS.base_dir = SEP.join((_GetTempDir(), 'mulpy'))
+    FLAGS.base_dir = SEP.join((_GetTempDir(), 'mulpy', 'runs'))
   FLAGS.base_dir = SEP.join((FLAGS.base_dir, FLAGS.run_uri))
   logging.info('Base directory set to: {}'.format(FLAGS.base_dir))
   if not pathlib.Path(FLAGS.base_dir).exists():
@@ -180,6 +181,7 @@ def _RunMulVal():
   ####
   gg = py_mulval.graph_gen(**mulval_args)
   gg.graph_gen()
+  gg.runMulVal()
 
   #####
   ## attack_graph.cpp
@@ -206,39 +208,39 @@ def _RunMulVal():
 
   ag.render()
 
-def _GenTransMatrix():
-
-  #####
-  ## genTransMatrix
-  ####
-  inputDir = FLAGS.base_dir
-  outfileName = os.path.splitext(FLAGS.input_file)[0]  # 'input'
-  scriptsDir = FLAGS.data_dir
-  pathlib.Path(FLAGS.output_dir).mkdir(parents=True, exist_ok=True)
-
-  opts = dict()
-  opts['scriptsDir'] = scriptsDir
-  opts['inputDir'] = inputDir
-  opts['outfileName'] = outfileName
-  opts['PLOT_INTERMEDIATE_GRAPHS'] = True
-  matrix_file = SEP.join((FLAGS.output_dir, outfileName + '.csv'))
-  opts['MatrixFile'] = matrix_file
-
-  # A = AttackGraph(inputDir=inputDir, scriptsDir=scriptsDir, opts=opts
-  A = genTransMatrix.AttackGraph(**opts)
-  A.name = outfileName
-  A.plot2(outfilename=A.name + '_001_orig.png')
-  tmatrix = A.getTransMatrix(**opts)
-  logging.debug('Created weighted transition matrix:\n %s' % tmatrix)
-
-  # Run analytics
-
-  mcsim_opts = dict()
-  mcsim_opts['input'] = matrix_file
-  mcsim_opts['output'] = FLAGS.output_dir
-  mcsim_opts['label'] = outfileName
-  subprocess.call(['Rscript', FLAGS.data_dir + '/mcsim.r', '--input=' + matrix_file,
-                   '--output=' + FLAGS.output_dir, '--label=' + outfileName])
+# def _GenTransMatrix():
+#
+#   #####
+#   ## genTransMatrix
+#   ####
+#   inputDir = FLAGS.base_dir
+#   outfileName = os.path.splitext(FLAGS.input_file)[0]  # 'input'
+#   scriptsDir = FLAGS.data_dir
+#   pathlib.Path(FLAGS.output_dir).mkdir(parents=True, exist_ok=True)
+#
+#   opts = dict()
+#   opts['scriptsDir'] = scriptsDir
+#   opts['inputDir'] = inputDir
+#   opts['outfileName'] = outfileName
+#   opts['PLOT_INTERMEDIATE_GRAPHS'] = True
+#   matrix_file = SEP.join((FLAGS.output_dir, outfileName + '.csv'))
+#   opts['MatrixFile'] = matrix_file
+#
+#   # A = AttackGraph(inputDir=inputDir, scriptsDir=scriptsDir, opts=opts
+#   A = genTransMatrix.AttackGraph(**opts)
+#   A.name = outfileName
+#   A.plot2(outfilename=A.name + '_001_orig.png')
+#   tmatrix = A.getTransMatrix(**opts)
+#   logging.debug('Created weighted transition matrix:\n %s' % tmatrix)
+#
+#   # Run analytics
+#
+#   mcsim_opts = dict()
+#   mcsim_opts['input'] = matrix_file
+#   mcsim_opts['output'] = FLAGS.output_dir
+#   mcsim_opts['label'] = outfileName
+#   subprocess.call(['Rscript', FLAGS.data_dir + '/mcsim.r', '--input=' + matrix_file,
+#                    '--output=' + FLAGS.output_dir, '--label=' + outfileName])
 
 
 def PublishRunStartedSample():
@@ -357,7 +359,7 @@ def Main():
   # PublishRunStartedSample()
   # os.chdir(FLAGS.base_dir)
   _RunMulVal()
-  _GenTransMatrix()
+  # _GenTransMatrix()
 
 
 if __name__ == '__main__':
