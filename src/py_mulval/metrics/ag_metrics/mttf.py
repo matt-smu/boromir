@@ -43,6 +43,11 @@ class mttf_metric(AGBasedSecMet):
 
     super(mttf_metric, self).__init__()
 
+  def getMetaData(self):
+    metadata = super().getMetaData()
+
+    return metadata
+
 
   def calculate(self):
 
@@ -111,7 +116,8 @@ class mttf_metric(AGBasedSecMet):
         #
         # def CheckPreReqs(self):
         #   passjson.dumps(json_graph.node_link_data(A)),
-        'attack_graph_reduced': json.dumps(json_graph.node_link_data(reduced_ag)),
+        # 'attack_graph_reduced': json.dumps(json_graph.node_link_data(reduced_ag)),
+        'attack_graph_reduced':reduced_ag.to_dots(),
         # 'all_paths_before': json.dumps(shortest_path_before),
         'mttf': mttf, # 'all_shortest_paths':   shortest_paths,
         # 'shortest_path_length': shortest_path_length,

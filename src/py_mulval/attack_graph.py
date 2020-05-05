@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import logging
 import os
+import json
 import random
 import re
 import sys
@@ -14,8 +15,11 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import pandas
 import scipy
+import uuid
 import yaml
 from networkx.drawing.nx_agraph import read_dot
+from networkx.drawing import nx_agraph
+import pygraphviz
 
 from py_mulval import flags
 
@@ -107,7 +111,6 @@ class AttackGraph(nx.MultiDiGraph):
             self.PLOT_INTERMEDIATE_GRAPHS = kwargs['PLOT_INTERMEDIATE_GRAPHS']
             logging.debug(('PLOT_INTERMEDIATE_GRAPHS: ', self.PLOT_INTERMEDIATE_GRAPHS))
 
-
         self.origin = None
         self.target = None
         self.node_list = []
@@ -120,6 +123,9 @@ class AttackGraph(nx.MultiDiGraph):
         if Path(os.path.join(self.inputDir, AG_DOT)).exists():
             self.data = read_dot(os.path.join(self.inputDir, AG_DOT))
         super(AttackGraph, self).__init__(self.data)
+
+        self.random_seed = FLAGS.secmet_random_seed or str(uuid.uuid4())
+        random.seed(self.random_seed)
 
         # add fields not included in dot file
         self.__updateAG()
@@ -169,6 +175,24 @@ class AttackGraph(nx.MultiDiGraph):
         super(AttackGraph, self).__init__(self.data)
         self.__updateAG()
 
+    def load_dot_string(self, dot_string):
+        logging.info('loading dot string: %s', dot_string)
+        # self.data = dot_string
+        self.data = nx_agraph.from_agraph(pygraphviz.AGraph(dot_string))
+        super(AttackGraph, self).__init__(self.data)
+        self.__updateAG()
+
+    def to_dots(self):
+        # return json.dumps(str(nx.nx_agraph.to_agraph(self)))
+        return str(nx.nx_agraph.to_agraph(self))
+
+    def write_dot_file(self, out_file_path):
+        """Writes current state to graphviz dot file
+        :param out_file_path: fq file name
+        :return:
+        """
+        nx.nx_agraph.write_dot(self, out_file_path)
+
     def plot2(self, *args, **kwargs):
         if not self.PLOT_INTERMEDIATE_GRAPHS:
             # bail if we don't want noisy output
@@ -185,6 +209,18 @@ class AttackGraph(nx.MultiDiGraph):
 
     def __updateAG(self):
         for node in self.nodes.keys():
+
+            if 'shape' not in self.nodes[node].keys():
+                self.nodes[node]['type'] = 'attacker_origin'
+                self.nodes[node]['shape'] = 'invtriangle'
+            # if 'type' not in self.nodes[node].keys():
+            #     self.nodes[node]['type'] = None
+            # if 'color' not in self.nodes[node].keys():
+            #     self.nodes[node]['color'] = None
+            # if 's' not in self.nodes[node].keys():
+            #     self.nodes[node]['s'] = None
+            # if 'shape' not in self.nodes[node].keys():
+            #     self.nodes[node]['shape'] == None
             if self.nodes[node]['shape'] == 'diamond':
                 self.nodes[node]['type'] = 'OR'
                 self.nodes[node]['color'] = 'blue'
@@ -202,6 +238,38 @@ class AttackGraph(nx.MultiDiGraph):
                 self.nodes[node]['s'] = 's'
             else:
                 logging.debug(('Unknown node type: ', self.nodes[node]['shape']))
+            # print('---node--- ', self.nodes[node])
+
+        for u, v, k, e in self.edges(keys=True, data=True):
+        # for x in self.edges(keys=True, data=True):
+        #     print(u, v, k, e)
+            if 'weight' in e.keys():
+                try:
+                    e['weight'] = float(e['weight'])
+                except ValueError:
+                    pass
+            if 'score_orig' in e.keys():
+                try:
+                    e['score_orig'] = float(e['score_orig'])
+                except ValueError:
+                    pass
+            if 'score' in e.keys():
+                try:
+                    e['score'] = float(e['score'])
+                except ValueError:
+                    pass
+            # print('---edge--- ', u, v, k, e)
+
+
+    def getMetaData(self):
+            metadata = { }
+            dict_keys = [ 'coalesced_rules', 'exploit_rules', 'exploitDict',
+                        'map_scores', 'score_strategy', 'random_seed']
+            for key in dict_keys:
+                metadata[key] = self.__dict__[key]
+            print(metadata)
+            return metadata
+
 
     def getPlotNodeLabels(self):
         labels = {}

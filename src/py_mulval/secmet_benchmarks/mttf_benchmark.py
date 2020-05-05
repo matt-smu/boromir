@@ -40,7 +40,9 @@ mttf:
   flags:
     input_file: single_host_1.P
     rule: local_exploit_rules.P
-    models_dir: /opt/projects/diss/py-mulval/data/models 
+    models_dir: /opt/projects/diss/py-mulval/data/models
+    secmet_fg_path: /opt/projects/diss/py-mulval/data/facts 
+    secmet_fg_name: mulval_facts.multi_host_1.json
     rules_dir: /opt/projects/diss/py-mulval/data/rules 
     data_dir: /opt/projects/diss/py-mulval/data
     secmet_ag_path: AttackGraph.dot

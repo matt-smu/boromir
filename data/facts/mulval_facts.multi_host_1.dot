@@ -1,0 +1,32 @@
+digraph "mulval_facts.multi_host_1.dot" {
+	graph [name="mulval_facts.multi_host_1.dot"];
+	webServer	 [color=blue,
+		s=s,
+		shape=box,
+		type=HOST];
+	webServer -> webServer [key=0];
+fileServer [color=blue,
+	s=s,
+	shape=box,
+	type=HOST];
+webServer -> fileServer [key=0];
+internet [color=blue,
+s=s,
+shape=box,
+type=HOST];
+webServer -> internet [key=0];
+workStation [color=blue,
+s=s,
+shape=box,
+type=HOST];
+webServer -> workStation [key=0];
+fileServer -> webServer [key=0];
+fileServer -> fileServer [key=0];
+fileServer -> internet [key=0];
+fileServer -> workStation [key=0];
+internet -> webServer [key=0];
+workStation -> webServer [key=0];
+workStation -> fileServer [key=0];
+workStation -> internet [key=0];
+workStation -> workStation [key=0];
+}

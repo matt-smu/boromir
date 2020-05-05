@@ -75,6 +75,17 @@ from os.path import isfile
 import six
 from six.moves import zip
 
+import py_mulval
+from py_mulval import *
+import py_mulval.py_mulval
+from py_mulval import py_mulval
+import py_mulval.metrics
+from py_mulval import metrics
+import py_mulval.mulpy
+from py_mulval import mulpy
+import py_mulval.secmet_benchmarks
+
+
 # from py_mulval import archive
 from py_mulval import background_tasks
 from py_mulval import benchmark_lookup
@@ -176,12 +187,12 @@ flags.DEFINE_boolean('use_pkb_logging', True, 'Whether to use PKB-specific '
                      'ABSL logging directly.')
 flags.DEFINE_boolean('log_dmesg', False, 'Whether to log dmesg from '
                      'each VM to the PKB log file before the VM is deleted.')
-flags.DEFINE_integer('boromir_run_count', 1, 'run this number of timws (for generating rangom samples', allow_override=True)
+
 
 def GetCurrentUser():
   """Get the current user name.
 
-  On somsecmet_fixe systems the current user information may be unavailable. In these
+  On some systems the current user information may be unavailable. In these
   cases we just need a string to tag the created resources with. It should
   not be a fatal error.
 
@@ -379,6 +390,11 @@ flags.DEFINE_string('ftp_proxy', '',
 flags.DEFINE_bool('randomize_run_order', False,
                   'When running with more than one benchmarks, '
                   'randomize order of the benchmarks.')
+
+
+
+flags.DEFINE_integer('boromir_run_count', 1, 'run this number of timws (for generating rangom samples', allow_override=True)
+
 
 _TEARDOWN_EVENT = multiprocessing.Event()
 
@@ -770,7 +786,6 @@ def DoTeardownPhase(spec, timer):
   with timer.Measure('Resource Teardown'):
     spec.Delete()
 
-
 def _SkipPendingRunsFile():
   if FLAGS.skip_pending_runs_file and isfile(FLAGS.skip_pending_runs_file):
     logging.warning('%s exists.  Skipping benchmark.',
@@ -804,6 +819,8 @@ def PublishRunStartedSample(spec):
   metadata = {
       'flags': str(flag_util.GetProvidedCommandLineFlags())
   }
+
+  modules = ['py_mulval.metrics']
   collector.AddSamples(
       [sample.Sample('Run Started', 1, 'Run Started', metadata)],
       spec.name, spec)
@@ -1242,13 +1259,17 @@ def Main():
     _PrintHelpMD(FLAGS.helpmatchmd)
     return 0
   CheckVersionFlag()
+  SetUpPKB()
   if FLAGS.boromir_run_count:
-
+    # if FLAGS.secmet_random_cvss_score:
+    #   FLAGS.secmet_random_seed = str(uuid.uuid4())
     collector = SampleCollector()
     run_count = FLAGS.boromir_run_count
     for i in range(0, run_count):
-      SetUpPKB()
+      # SetUpPKB()
       all_good = RunBenchmarks(collector)
       if all_good == 1:
+        collector.PublishSamples() # publish failed samples
         return
+
     collector.PublishSamples()

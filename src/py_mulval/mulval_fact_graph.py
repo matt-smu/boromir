@@ -17,7 +17,10 @@ import networkx as nx
 import pandas
 import scipy
 import yaml
+
 from networkx.drawing.nx_agraph import read_dot
+from networkx.drawing import nx_agraph
+import pygraphviz
 
 from py_mulval import flags
 
@@ -68,6 +71,17 @@ class FactGraph(nx.MultiDiGraph):
     # add fields not included in dot file
     self.__updateFG()
 
+  def write_dot(self, dot_path):
+    nx.drawing.nx_agraph.write_dot(self, dot_path)
+
+  def to_dots(self):
+    return json.dumps(str(nx.nx_agraph.to_agraph(self)))
+
+  def load_dot_file(self, dot_file_path):
+    logging.info('loading dot file: %s', dot_file_path)
+    self.data = read_dot(dot_file_path)
+    super(FactGraph, self).__init__(self.data)
+    self.__updateFG()
 
   def load_json_file(self, json_file_path):
     """loads a json dict of mulval facts and updates graph"""
@@ -76,6 +90,17 @@ class FactGraph(nx.MultiDiGraph):
       self.facts_dict = json.load(infile)
 
     self.parseFactsFromDict()
+
+  def load_dot_string(self, dot_string):
+    logging.info('loading dot string: %s', dot_string)
+    # self.data = dot_string
+    self.data = nx_agraph.from_agraph(pygraphviz.AGraph(dot_string))
+    super(FactGraph, self).__init__(self.data)
+    self.__updateFG()
+
+  def to_dots(self):
+    # return json.dumps(str(nx.nx_agraph.to_agraph(self)))
+    return str(nx.nx_agraph.to_agraph(self))
 
   def write_dot_file(self, out_file_path):
     """Writes current state to graphviz dot file
@@ -149,7 +174,7 @@ class FactGraph(nx.MultiDiGraph):
     if 'hacl' in self.facts_dict.keys() and type(self.facts_dict['hacl']) is list and self.facts_dict['hacl']:
       for hacl in self.facts_dict['hacl'][0]:
         if len(hacl) != 4:
-          logging.error('hacl/5 not found... continuing')
+          logging.error('hacl/4 not found... continuing')
           logging.error(hacl)
           continue
         src = hacl[0] if type(hacl[0]) not in (tuple, list) else 'ANY'
