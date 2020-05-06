@@ -1,0 +1,30 @@
+/*** Net A ***/
+hostNet(a1, neta).
+hostNet(a2, neta).
+hostNet(multi, neta).
+/*** Net B ***/
+hostNet(b1, netb).
+hostNet(b2, netb).
+hostNet(multi, netb).
+/*** Net C ***/
+hostNet(c1, netc).
+hostNet(c2, netc).
+/*** Net D ***/
+hostNet(d1, netd).
+/*** Router between nets A & B ***/
+hostNet(routerAB, neta).
+hostNet(routerAB, netb).
+routeEntry(routerAB, neta, netb, tcp, 80).
+routeEntry(routerAB, netb, neta, tcp, 433).
+/*** Router between nets B & C & D ***/
+hostNet(routerBCD, netb).
+hostNet(routerBCD, netc).
+hostNet(routerBCD, netd).
+routeEntry(routerBCD, netb, netc, tcp, 80).
+routeEntry(routerBCD, netb, netc, tcp, 433).
+routeEntry(routerBCD, netb, netd, tcp, 80).
+routeEntry(routerBCD, netc, netd, tcp, 80).
+/*** test entering a derived predicate ***/
+/* derived route predicate was ignored in mulVAL
+route(neta,netd,udp,500).
+*/

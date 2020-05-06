@@ -1,0 +1,35 @@
+ /** primitives **/
+primitive(gateway(_host)).
+primitive(flowExists(_src, _dst, _protocol, _port, _user)).
+
+derived(netAccess(_machine, _protocol, _port)).
+derived(principalCompromised(_victim)).
+
+:- table netaccess/2.
+:- table principalCompromised/1.
+
+/** interaction rules **/
+interaction_rule(
+   ( netAccess(H2, _protocol, _port) :-
+ gateway(H1),
+ advances(H1, H2),
+ netAccess(H1, _protocol, _port),
+ hacl(H1, H2, _protocol, _port)),
+  rule_desc('arp1', 0.4)).
+
+interaction_rule(
+   (principalCompromised(Victim) :-
+ hasAccount(Victim, RemoteHost, User),
+ /* Arp spoof works only if the victim and attacker are in the same subnet*/
+ attackerLocated(Subnet),
+ hacl(Subnet, H, _anyProtocol, _anyPort),
+ /* Victim is using standard arp for address resolution*/
+ networkServiceInfo(H, arpd, _protocol, _port, _),
+ /* The standard arpd protocol is vulnerable to spoofing */
+ vulExists(H, arpSpoofVuln, arpd, remoteExploit, arpSpoof),
+ /* The User has an account on a login service on the remote host */
+ logInService(RemoteHost, Protocol, Port),
+ /* There is an active connection from the host to the remote machine */
+ flowExists(H, RemoteHost, Protocol, Port, User)),
+  rule_desc('arp2',
+  0.4)).

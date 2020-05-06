@@ -1,0 +1,83 @@
+% Copyright (C) 2006 Defence R&D Canada
+% MulVAL interaction rules for mapping networks.
+% Author : Mike Froh
+/*******************************************************/
+/****
+Primitive predicates
+*****/
+/*******************************************************/
+primitive(hostNet(_host, _net)).
+explain(hostNet(Host, Network), Text)
+:- fmt_write_string(Text,
+"The host %S is attached to network %S.",
+args(Host,Network)).
+primitive(routeEntry(_router, _initnet, _targetnet, _protocol,
+_port)).
+explain(routeEntry(Router, InitNet, TargetNet, Protocol, Port), Text)
+:- fmt_write_string(Text,
+"Router %S has a rule which allows communication using protocol %S
+to
+destination port %S from subnet %S to subnet %S.",
+args(Router, Protocol, Port, InitNet, TargetNet)).
+/*******************************************************/
+/****
+Derived predicates
+*****/
+/*******************************************************/
+derived(route(_initnet, _targetnet, _protocol, _port)).
+explain(route(InitNet, TargetNet, Protocol, Port), Text)
+:- fmt_write_string(Text,
+"A route exists using protocol %S from subnet %S to subnet %S
+to destination port %S.",
+args(Protocol, InitNet, TargetNet, Port)).
+derived(hacl(_ihost, _thost, _protocol, _port)).
+explain(hacl(InitHost, TargetHost, Protocol, Port), Text) :-
+fmt_write_string(Text,
+"Host %S can initiate %S communications to Host %S on port %S.",
+args(InitHost, Protocol, Port, TargetHost)).
+DRDC Ottawa CR 2006-251
+44Net_rules.P listing:
+% Copyright (C) 2006 Defence R&D Canada
+% MulVAL interaction rules for mapping networks.
+% Author : Mike Froh
+:- table route/4.
+:- table hacl/4.
+/****** Route Section *******/
+interaction_rule(
+(route(InitNet, TargetNet, Protocol, Port) :-
+routeEntry(Router, InitNet, TargetNet, Protocol, Port),
+hostNet(Router,InitNet),
+hostNet(Router,TargetNet)),
+'Direct route between subnets through an intermediate router').
+interaction_rule(
+(route(InitNet, TargetNet, Protocol, Port) :-
+route(InitNet, TransitNet, Protocol, Port),
+route(TransitNet, TargetNet, Protocol, Port)),
+'Transitive routing through an intermediate network').
+/****** HACL Section *******/
+interaction_rule(
+(hacl(InitHost, TargetHost, Protocol, Port) :-
+hostNet(InitHost, InitNet),
+hostNet(TargetHost, TargetNet),
+InitNet \= TargetNet,
+route(InitNet, TargetNet, Protocol, Port)),
+'Hosts can only communicate between networks through a valid
+route.').
+interaction_rule(
+(hacl(InitHost, TargetHost, _, _) :-
+hostNet(InitHost, CommonNet),
+hostNet(TargetHost, CommonNet)),
+'Hosts on same network have no communication restrictions.').
+/*
+I was thinking of automatically deriving the hostNet predicates
+for routers/firewalls from the routeEntry statements. But this
+means we need to define a primitive hostNet and a derived
+hostNetprime and render all hostNet to hostNetprime while
+deriving router/firewall hostNetprime from routeEntry predicates.
+This will not work as currently defined!
+interaction_rule(
+(hostNet(Router,Net) :-
+routeEntry(Router, Net, _, _, _);
+routeEntry(Router, _, Net, _, _)),
+'Routers are hosts on their network interfaces.').
+*/

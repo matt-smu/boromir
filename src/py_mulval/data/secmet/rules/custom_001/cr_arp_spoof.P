@@ -1,0 +1,7 @@
+
+%interaction_rule(
+%  (principalCompromised(Victim) :-
+%  attackerLocated(Zone),
+%  rule_desc('r100_001 arp_spoof The victims traffic was redirected ',
+%  0.8)).
+

@@ -1,0 +1,22 @@
+ /* attacker specification */ 
+ attackerLocated(subnetA). 
+ attackGoal( 
+ execCode(ftpServerHost,victimAccount)). 
+ /* topology */ 
+ hacl(subnetA, ftpClientHost,_,_). 
+ hacl(subnetA, router1,_,_). 
+ hacl(router1, router2,_, _). 
+ hacl(router2, ftpServerHost, tcp , 21). 
+ /* cross-subnet comms through routers */ 
+ gateway(router1). 
+ gateway(router2). 
+ /* client */ 
+ networkServiceInfo(ftpClientHost, arpd,_,_,_). 
+ vulExists(ftpClientHost, arpSpoofVuln, arpd). 
+ vulProperty(arpSpoofVuln, remoteExploit, arpSpoof). 
+ /* ftp server */ 
+ networkServiceInfo(ftpServerHost, ftpd, tcp, 21, userLevel). 
+ hasAccount(victim, ftpServerHost, victimAccount). 
+ networkServiceInfo(ftpServerHost, arpd, _,_,_). 
+ /* comms */ 
+ flowExists(ftpClientHost, ftpServerHost, tcp, 21, victimAccount).

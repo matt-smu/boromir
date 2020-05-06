@@ -1,0 +1,17 @@
+
+
+/*
+Arp Spoof Example
+*/
+
+
+/*
+*/
+attackerLocated(subnet_1).
+attackGoal(principalCompromised(vicim1)).
+
+/*
+
+*/
+hacl(ce1, pe1_d,  _, _). 
+

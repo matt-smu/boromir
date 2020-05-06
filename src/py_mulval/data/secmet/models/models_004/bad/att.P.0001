@@ -1,0 +1,35 @@
+
+/*
+   attacker is at the internet 
+   pe1 is CRS with vuln CVE-2012-1342 (ACL bypass)
+   target is core router p2 
+*/
+attackerLocated(ce1).
+attackGoal(execCode(p3, _)).
+
+/*
+   attacker can reach to pe1
+   pe1 speaks to p2 and p3
+*/
+hacl(ce1, pe1,  _, _).
+hacl(pe1, p2,  _, _).
+hacl(p2, p3, _, _).
+hacl(pe1, p3,  _, _).
+/*
+hacl(H, H, _, _).
+*/
+
+vulExists(pe1, 'CVE-2012-1342', _).
+vulProperty( 'CVE-2012-1342', remoteExploit, privEscalation).
+networkServiceInfo(pe1 , _, _, _, _).
+
+
+vulExists(p2, 'CVE-2009-2048',_).
+vulProperty('CVE-2009-2048', remoteExploit, privEscalation).
+networkServiceInfo(p2 , _, _, _, _).
+
+vulExists(p3, 'CVE-2009-2048',xss).
+vulProperty('CVE-2009-2048', remoteExploit, privEscalation).
+networkServiceInfo(p3 , _, _, _, _).
+
+
