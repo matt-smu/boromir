@@ -43,14 +43,17 @@ BENCHMARK_CONFIG = """
 mttf:
   description: Run mttf metric
   flags:
-    input_file: single_host_1.P
+    # input_file: single_host_1.P
+    # input_file: h2v1s5.P
     rule: local_exploit_rules.P
+    ## set pointers below to change default locations for a test
     # models_dir: /opt/projects/diss/py-mulval/data/models
     # secmet_fg_path: /opt/projects/diss/py-mulval/data/facts 
     # secmet_fg_name: mulval_facts.single_host_1.json
-    rules_dir: /opt/projects/diss/py-mulval/data/rules 
-    data_dir: /opt/projects/diss/py-mulval/data
+    # rules_dir: /opt/projects/diss/py-mulval/data/rules 
+    # data_dir: /opt/projects/diss/py-mulval/data
     # secmet_ag_path: AttackGraph.dot
+    secmet_map_scores: cvss2time
     # output_dir: 
   # vm_groups:
 """

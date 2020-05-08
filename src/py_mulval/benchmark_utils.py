@@ -63,7 +63,8 @@ FLAGS = flags.FLAGS
 FLAGS = flags.FLAGS
 
 DEFAULT_AG_NAME = "AttackGraph.dot"
-DEFAULT_AG_MODEL_NAME = "input.P"
+# DEFAULT_AG_MODEL_NAME = "input.P"
+DEFAULT_AG_MODEL_NAME = None
 DEFAULT_FG_NAME = '.'.join(('mulval_facts','input', 'dot'))
 
 def get_attack_graph():
