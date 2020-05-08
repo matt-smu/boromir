@@ -4,7 +4,22 @@
 from absl.testing import flagsaver
 import sys
 import networkx as nx
+import os
+SEP = os.path.sep
+import sys
 
+from py_mulval import configs
+from py_mulval import data
+from py_mulval import flags
+# from py_mulval import genTransMatrix
+from py_mulval import attack_graph
+# from py_mulval import mulpy
+# from py_mulval import py_mulval
+from py_mulval import sample
+from py_mulval import vm_util
+from py_mulval import benchmark_utils as bmutil
+
+from py_mulval.metrics.ag_metrics import mttf
 from py_mulval import benchmark_spec
 from py_mulval import configs
 from py_mulval import context
@@ -12,17 +27,16 @@ from py_mulval import flags
 # from py_mulval import linux_benchmarks
 from py_mulval import secmet_benchmarks
 from py_mulval.attack_graph import AttackGraph
+from py_mulval import boromir
 # from py_mulval import pkb  # pylint: disable=unused-import # noqa
 # from py_mulval import static_virtual_machine as static_vm
 from py_mulval.configs import benchmark_config_spec
-# from py_mulval.linux_benchmarks import iperf_benchmark
-# from py_mulval.providers.gcp import util
 from tests import common_test_case
 
 # import tests.common_test_case
 
 
-flags.DEFINE_integer('benchmark_spec_test_flag', 0, 'benchmark_spec_test flag.')
+# flags.DEFINE_integer('benchmark_spec_test_flag', 0, 'benchmark_spec_test flag.')
 
 FLAGS = flags.FLAGS
 
@@ -394,11 +408,70 @@ class TestAttackGraph(_AttackGraphTestCase):
     ag = AttackGraph()
     ag.load_dot_string(reduced_ag_string)
 
-    print(ag.edges(data=True))
+    # print(ag.edges(data=True))
 
     sg_ag = StellarGraph.from_networkx(ag)
 
-    print(sg_ag.info())
+    # print(sg_ag.info())
+
+  @flagsaver.flagsaver(run_uri='12345678',secmet_random_seed='12345', base_dir='/tmp/mulpy/basedir',input_file='single_host_1.P',models_dir='/opt/projects/diss/py-mulval/data/models', secmet_model_type='enterprise', secmet_model_size='small')
+  def test_loadDot_equals_init(self):
+
+    ## construct ag from dot file
+
+    # input_models_dir = FLAGS.models_dir or data.ResourcePath(
+    #     SEP.join(('boromir', FLAGS.secmet_model_size, FLAGS.secmet_model_type)))
+    # input_models_dir = FLAGS.models_dir or data.ResourcePath(
+    input_models_dir = data.ResourcePath(
+        SEP.join(('boromir', FLAGS.secmet_model_size,
+        FLAGS.secmet_model_type)))
+
+    ag_dot = SEP.join((input_models_dir, 'AttackGraph.dot'))
+
+    attack_graph_from_dot = AttackGraph()
+    attack_graph_from_dot.scriptsDir = data.ResourcePath('secmet')
+    attack_graph_from_dot.load_score_dict(SEP.join((data.ResourcePath('secmet'), attack_graph.SCORE_DICT)))
+    attack_graph_from_dot.inputDir = input_models_dir
+    attack_graph_from_dot.outputDir = vm_util.GetTempDir()
+    attack_graph_from_dot.load_dot_string(ag_dot)
+
+    ## contruct ag from args
+    outputDir = vm_util.GetTempDir()
+    # outfileName = os.path.splitext(FLAGS.input_file)[0]  or 'input.P' # 'input'
+    outfileName = os.path.splitext('AttackGraph_2.dot')
+    scriptsDir = data.ResourcePath('secmet')
+    # pathlib.Path(FLAGS.output_dir).mkdir(parents=True, exist_ok=True)
+
+    tmatrix_filename = FLAGS.base_dir +  'tmatrix.csv'
+
+    opts = dict()
+    opts['scriptsDir'] = scriptsDir
+    opts['inputDir'] = input_models_dir
+    opts['outputDir'] = outputDir
+    opts['outfileName'] = outfileName
+    opts['PLOT_INTERMEDIATE_GRAPHS'] = FLAGS.secmet_plot_intermediate_graphs
+    matrix_file = tmatrix_filename
+    opts['MatrixFile'] = matrix_file
+
+    attack_graph_from_args = attack_graph.AttackGraph(**opts)
+
+    omit_keys = ['data'] # add bin/unique vals here
+
+    # attack_graph_from_args.load_score_dict()
+    print(attack_graph_from_dot.__dict__.keys() - attack_graph_from_args.__dict__.keys())
+    print(attack_graph_from_args.__dict__.keys() - attack_graph_from_dot.__dict__.keys() )
+    self.assertEqual(attack_graph_from_dot.__dict__.keys(), attack_graph_from_args.__dict__.keys())
+    for k, v in attack_graph_from_dot.__dict__.items() :
+      if k in attack_graph_from_args.__dict__.keys() and k not in omit_keys:
+        self.assertEqual(v, attack_graph_from_args.__dict__[k])
+      else:
+        print(k, ' not in args keys')
+    # self.assertEqual(attack_graph_from_dot.__dict__, attack_graph_from_args.__dict__)
+
+    # print(attack_graph_from_dot.data.__dict__, attack_graph_from_args.data.__dict__)
+
+    # self.assertEqual(attack_graph_from_dot.data,
+    #                  attack_graph_from_args.data)
 
 
   # def test_plot2(self):

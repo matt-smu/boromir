@@ -10,6 +10,8 @@ import itertools
 from copy import deepcopy
 from pathlib import Path
 
+import pathlib
+
 import MySQLdb
 import matplotlib
 import matplotlib.pyplot as plt
@@ -71,8 +73,8 @@ class FactGraph(nx.MultiDiGraph):
     # add fields not included in dot file
     self.__updateFG()
 
-  def write_dot(self, dot_path):
-    nx.drawing.nx_agraph.write_dot(self, dot_path)
+  # def write_dot(self, dot_path):
+  #   nx.drawing.nx_agraph.write_dot(self, dot_path)
 
   def to_dots(self):
     return json.dumps(str(nx.nx_agraph.to_agraph(self)))
@@ -86,10 +88,15 @@ class FactGraph(nx.MultiDiGraph):
   def load_json_file(self, json_file_path):
     """loads a json dict of mulval facts and updates graph"""
     logging.info('loading json file: %s', json_file_path)
-    with open(json_file_path, 'r') as infile:
-      self.facts_dict = json.load(infile)
+    if pathlib.Path(json_file_path).exists():
+      with open(json_file_path, 'r') as infile:
+        self.facts_dict = json.load(infile)
+      self.parseFactsFromDict()
+    else:
+      logging.error('json file doesnt exist: '.format(json_file_path))
 
-    self.parseFactsFromDict()
+
+
 
   def load_dot_string(self, dot_string):
     logging.info('loading dot string: %s', dot_string)

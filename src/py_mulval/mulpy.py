@@ -1,21 +1,20 @@
-from absl import app
-from absl import flags
 import logging
 import os
 import pathlib
 import re
-import subprocess
 import sys
 import tempfile
 import uuid
 
-from py_mulval import boromir # importing flags only
+from absl import app
+
 from py_mulval import flag_util
-from py_mulval import genTransMatrix
+from py_mulval import vm_util
 from py_mulval import log_util
 from py_mulval import publisher
 from py_mulval import py_mulval
 from py_mulval import sample
+from py_mulval.benchmark_sets import *
 
 FLAGS = flags.FLAGS
 
@@ -204,6 +203,7 @@ def _RunMulVal():
   # logging.info('verts: %s' % verts)
 
   gg.writeFile(FLAGS.base_dir + '/ARCS.CSV', arcs)
+  print('------------writing ag---------', FLAGS.base_dir)
   gg.writeFile(FLAGS.base_dir + '/VERTICES.CSV', verts)
 
   ag.render()

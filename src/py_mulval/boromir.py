@@ -75,24 +75,12 @@ from os.path import isfile
 import six
 from six.moves import zip
 
-import py_mulval
 from py_mulval import *
-import py_mulval.py_mulval
-from py_mulval import py_mulval
-import py_mulval.metrics
-from py_mulval import metrics
-import py_mulval.mulpy
-from py_mulval import mulpy
-import py_mulval.secmet_benchmarks
-
-
 # from py_mulval import archive
 from py_mulval import background_tasks
 from py_mulval import benchmark_lookup
-from py_mulval import benchmark_sets
 from py_mulval import benchmark_spec
 from py_mulval import benchmark_status
-from py_mulval import configs
 from py_mulval import context
 # from py_mulval import disk
 from py_mulval import errors
@@ -105,7 +93,6 @@ from py_mulval import os_types
 from py_mulval import package_lookup
 from py_mulval import requirements
 from py_mulval import sample
-from py_mulval import secmet_benchmarks
 # from py_mulval import spark_service
 from py_mulval import stages
 # from py_mulval import static_virtual_machine
@@ -123,6 +110,12 @@ REQUIRED_INFO = ['scratch_disk', 'num_machines']
 REQUIRED_EXECUTABLES = frozenset(['ssh', 'ssh-keygen', 'scp', 'openssl'])
 MAX_RUN_URI_LENGTH = 12
 FLAGS = flags.FLAGS
+
+
+from py_mulval import configs
+from py_mulval import flags
+from py_mulval import secmet_benchmarks
+from py_mulval import benchmark_sets
 
 # Define patterns for help text processing.
 BASE_RELATIVE = '../'  # Relative path from markdown output to PKB home for link writing.

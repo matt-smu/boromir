@@ -41,32 +41,51 @@ class BaseSecurityMetric(object):
     self.CITATION_FULL = current_module.CITATION_FULL
     self.METRIC_SUMMARY = current_module.METRIC_SUMMARY
 
-    self.fg = FactGraph() # input system model common to all metrics
-    self.loadFactsGraph()
+    self.fg = None
+    self.fg_path = None
+    # FactGraph() # input system model common to all metrics
+    # self.loadFactsGraph()
     super().__init__()
 
-  def loadFactsGraph(self):
+  def loadFactsGraphDot(self, fg_dot_path):
+    self.fg = FactGraph.from_agraph(pygraphviz.AGraph(FLAGS.secmet_fg_dot))
+    # return 0
 
-    if FLAGS.secmet_fg_dot and pathlib.Path(FLAGS.secmet_fg_dot).exists():
-      self.fg = FactGraph.from_agraph(pygraphviz.AGraph(FLAGS.secmet_fg_dot))
-    else:
-      fg_path = FLAGS.secmet_fg_path
-      fg_name = FLAGS.secmet_fg_name
-      outfileName = os.path.splitext(fg_name)[0] + '.dot'  # '{facts}.{json}'
-      outfile = SEP.join((fg_path, outfileName))
-      if pathlib.Path(outfile).exists(): # maybe we wrote it already
-        logging.info('Found fact file at default path: {}'.format(outfile))
-        self.fg.load_dot_file(outfile)
+  def loadFactGraphJson(self, fg_json_path):
+    self.fg.load_json_file(fg_json_path)
 
-        # self.fg = FactGraph()
-        # FLAGS[secmet_fg_dot] = outfile
-      else:
-        if pathlib.Path(SEP.join((fg_path, fg_name))).exists():
-          logging.info('couldnt find fact graph dot, loading default {}'.format(SEP.join((fg_path, fg_name))))
-          self.fg.load_json_file(SEP.join((fg_path, fg_name)))
-          self.fg.name = os.path.splitext(fg_name)[0]
-          self.fg.write_dot(outfile) # make a new outfile for next time
-          # FLAGS[secmet_fg_dot] = outfile
+
+
+  #
+  # def loadFactsGraph(self):
+  #   if self.fg_path and pathlib.Path(fg_path).exists():
+  #     self.fg = FactGraph.from_agraph(pygraphviz.AGraph(self.fg_path))
+  #     return 0
+  #
+  #   if FLAGS.secmet_fg_dot and pathlib.Path(FLAGS.secmet_fg_dot).exists():
+  #     self.fg = FactGraph.from_agraph(pygraphviz.AGraph(FLAGS.secmet_fg_dot))
+  #     return 0
+  #   elif FLAGS.input_file  and pathlib.Path(FLAGS.input_file).exists():
+  #     fg_path = FLAGS.secmet_fg_path
+  #     fg_name = FLAGS.secmet_fg_name
+  #     outfileName = os.path.splitext(fg_name)[0] + '.dot'  # '{facts}.{json}'
+  #     outfile = SEP.join((fg_path, outfileName))
+  #     if pathlib.Path(outfile).exists(): # maybe we wrote it already
+  #       logging.info('Found fact file at default path: {}'.format(outfile))
+  #       return self.fg.load_dot_file(outfile)
+  #
+  #
+  #       # self.fg = FactGraph()
+  #       # FLAGS[secmet_fg_dot] = outfile
+  #     else:
+  #       if pathlib.Path(SEP.join((fg_path, fg_name))).exists():
+  #         logging.info('couldnt find fact graph dot, loading default {}'.format(SEP.join((fg_path, fg_name))))
+  #         self.fg.load_json_file(SEP.join((fg_path, fg_name)))
+  #         self.fg.name = os.path.splitext(fg_name)[0]
+  #         self.fg.write_dot(outfile) # make a new outfile for next time
+  #         # FLAGS[secmet_fg_dot] = outfile
+  #         return 0
+  #   return -1
 
 
 

@@ -11,12 +11,12 @@ mttf:
 
         secmet_plot_intermediate_graphs: False
 
-        models_dir: /opt/projects/diss/py-mulval/data/models
-        rules_dir: /opt/projects/diss/py-mulval/data/rules
-        data_dir: /opt/projects/diss/py-mulval/data
-        secmet_ag_path: AttackGraph.dot
-
-        secmet_random_cvss_score: True
+#        models_dir: /opt/projects/diss/py-mulval/data/models
+#        rules_dir: /opt/projects/diss/py-mulval/data/rules
+#        data_dir: /opt/projects/diss/py-mulval/data
+#        secmet_ag_path: AttackGraph.dot
+#
+#        secmet_random_cvss_score: True
 
         #    secmet_fix_cvss_score: 1
         secmet_map_scores: 'cvss2time'

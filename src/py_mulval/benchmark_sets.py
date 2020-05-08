@@ -22,6 +22,7 @@ import collections
 import copy
 import itertools
 
+
 from py_mulval import configs
 from py_mulval import flags
 from py_mulval import secmet_benchmarks
@@ -37,8 +38,11 @@ flags.DEFINE_string('flag_zip', None,
 flags.DEFINE_integer('num_benchmark_copies', 1,
                      'The number of copies of each benchmark config to run.')
 
+
 MESSAGE = 'message'
+
 BENCHMARK_LIST = 'benchmark_list'
+
 STANDARD_SET = 'standard_set'
 
 BENCHMARK_SETS = {

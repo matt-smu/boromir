@@ -8,12 +8,16 @@ import logging
 import os
 import pathlib
 from pyxsb import *
-
+from py_mulval import vm_util
+import threading
+from py_mulval import data
 # from py_mulval import log_util
 
 FLAGS = flags.FLAGS
 
 SEP = os.path.sep
+
+mulval_run_lock = threading.Lock()
 
 # needed if pyxsb can't find xsb
 XSB_ARCH_DIR = '/opt/apps/xsb/XSB/config/x86_64-unknown-linux-gnu'
@@ -209,7 +213,13 @@ class graph_gen(object):
     """
 
     super(graph_gen, self)
-    self._input_file = FLAGS.input_file # not sure where this came from next line
+
+
+    self._input_file = FLAGS.input_file or 'input.P'
+    if 'input_file' in kwargs.keys() and kwargs['input_file'] is not None: # override flags if args passed explicitly
+      self._input_file = kwargs['input_file']
+
+    # self._input_file = FLAGS.input_file # not sure where this came from next line
     # self._input_file = INPUT_FILE if 'input_file' not in kwargs else kwargs.get(
     #     'input_file')
     # self._rule_files = FLAGS.rule  # kwargs.get('rulefile')
@@ -228,6 +238,53 @@ class graph_gen(object):
     self._goal = FLAGS.goal or None  # goal passed in a flag
     self.rule_files = list()
     self.rule_files_additional= list()
+    self.rulefiles_basedir = FLAGS.rules_dir or data.ResourcePath('secmet/rules')
+
+    self.base_dir = FLAGS.base_dir or vm_util.GetTempDir() # do something about basedir if we dont know about boromir
+    if 'base_dir' in kwargs.keys() and kwargs['base_dir'] is not None and kwargs['base_dir'] != self.base_dir and pathlib.Path(kwargs['base_dir']).exists():
+      self.base_dir = kwargs['base_dir']
+
+
+    # fix rule parsing and lookup here
+    default_rule_files = [] # placeholder
+    ineraction_rules_file = INTERACTIONRULES # INTERACTIONRULES = SEP.join((MULVALROOT, 'kb/interaction_rules.P'))
+    if pathlib.Path(ineraction_rules_file).exists(): # only add full paths here, and they must exist
+      self.rule_files.append(INTERACTIONRULES)  # @TODO cvss and ma checks
+
+    rule_files_from_flags = FLAGS.rule or []  # we get a list of --rule=rulefile.P elements
+    rule_files_from_args = [] # union rules with flags if args passed explicitly
+    if 'rule_files' in kwargs.keys() and kwargs['rule_files'] is not None:
+      rule_files_from_args = kwargs['rule_files']
+
+    all_rule_files = set(rule_files_from_flags) | set(rule_files_from_args) | set(default_rule_files)
+    if all_rule_files and self.rulefiles_basedir:
+      for rule in all_rule_files:
+        rule = SEP.join((self.rulefiles_basedir, rule))
+        print(rule)
+        if pathlib.Path(rule).exists():  # only add full paths here, and they must exist
+          logging.info('adding rule: {}'.format(rule))
+          self.rule_files.append(rule)  #
+
+
+
+    # append RULES_DIR to rule files path... @TODO expect full path for each?
+
+    # print('-------------------', self.rule_files)
+    # print('-------------------', FLAGS.rule)
+    # print('-------------------', FLAGS.rules_dir)
+    # print('-------------------', )
+
+
+
+    # # rulefilepaths_from_flags_list = []
+    # if rule_files_from_flags and rulefiles_basedir: #
+    #   for rule in rule_files_from_flags:
+    #     if pathlib.Path(SEP.join((rulefiles_basedir, rule))).exists():
+    #       # rulefilepaths_from_flags_list.append(SEP.join((rulefiles_basedir, rule)))
+    #       self.rule_files.append(SEP.join((rulefiles_basedir, rule)))
+
+
+
     # template this out for later
     # vars:
     self.ts = """:-['{{ _MULVALROOT }}/lib/libmulval'].  % start base run script
@@ -292,33 +349,36 @@ class graph_gen(object):
     _cvss = self._cvss
     _goal = self._goal
 
-    logging.info('writing rule files to working directory %s...' % FLAGS.base_dir)
-    self.rule_files.append(INTERACTIONRULES)  # @TODO cvss and ma checks
-    # append RULES_DIR to rule files path... @TODO expect full path for each?
-    rulefiles = list((SEP.join((FLAGS.rules_dir, file)) for file in FLAGS.rule)) if FLAGS.rule else None
+
+
+
+    # rulefiles = list((SEP.join((FLAGS.rules_dir, file)) for file in FLAGS.rule)) if (FLAGS.rule and pathlib.Path(SEP.join((FLAGS.rules_dir, file)).exists())) else None
     # if rulefiles:
-    logging.debug('rulefiles to write from: %s ' % list(rulefiles))
-    self.rule_files.append(*rulefiles)
+    # if FLAGS.rules_dir and FLAGS.rule:
+    # logging.debug('rulefiles to write from: %s ' % rulefiles)
+    # if rulefiles:
+    #   self.rule_files.append(*rulefiles)
     logging.debug('rule files: %s' % self.rule_files)
     logging.debug('additional rule files: %s' % self.rule_files_additional)
     self.writeRulesFile(self.rule_files, self.rule_files_additional)
 
-    logging.info('writing environment file %s...' % SEP.join((FLAGS.base_dir, ENV_FILE_NAME)))
+    logging.info('writing environment file %s...' % SEP.join((self.base_dir, ENV_FILE_NAME)))
     tm = Template(self.ts)
     logging.debug('locals: %s' % locals())
-    self.writeFile(SEP.join((FLAGS.base_dir, ENV_FILE_NAME)), tm.render(locals()))
+    self.writeFile(SEP.join((self.base_dir, ENV_FILE_NAME)), tm.render(locals()))
 
-    logging.info('writing run file %s...' % SEP.join((FLAGS.base_dir, RUN_FILE_NAME)))
-    self.writeFile(SEP.join((FLAGS.base_dir, RUN_FILE_NAME)), tm.render(locals(), _type='run'))
+    logging.info('writing run file %s...' % SEP.join((self.base_dir, RUN_FILE_NAME)))
+    self.writeFile(SEP.join((self.base_dir, RUN_FILE_NAME)), tm.render(locals(), _type='run'))
 
     logging.info('running mulval in xsb...')
-    os.chdir(FLAGS.base_dir)
+    os.chdir(self.base_dir)
     # self.runMulVal()
 
   def writeRulesFile(self, _RULE_FILES, _RULE_FILES_ADDITIONAL):
     """@TODO needs logic for placement, tabling, validation"""
-
-    with open(SEP.join((FLAGS.base_dir,RUNNING_RULES_NAME)), 'w+') as outfile:
+    print(self.base_dir, RUNNING_RULES_NAME,  _RULE_FILES, _RULE_FILES_ADDITIONAL)
+    print(self.base_dir, RUNNING_RULES_NAME, _RULE_FILES, _RULE_FILES_ADDITIONAL)
+    with open(SEP.join((self.base_dir,RUNNING_RULES_NAME)), 'w+') as outfile:
       for fname in chain(_RULE_FILES, _RULE_FILES_ADDITIONAL):
         with open(fname, 'r') as infile:
           outfile.write(infile.read())
@@ -382,56 +442,58 @@ class graph_gen(object):
     return allfacts
 
   def runMulVal(self):
-    pyxsb_start_session(XSB_ARCH_DIR)
-    #     from pyxsb import *
-    logging.info(pyxsb_query('cwd(D).'))
+    with mulval_run_lock:
+      logging.error('nulval run lock acquired...')
+      pyxsb_start_session(XSB_ARCH_DIR)
+      #     from pyxsb import *
+      logging.info(pyxsb_query('cwd(D).'))
 
-    # pyxsb_query('catch(abort,Exception,true).')
+      # pyxsb_query('catch(abort,Exception,true).')
 
-    # xsb 2>xsb_log.txt 1>&2 <<EOF
-    # [environment].
-    # tell('goals.txt').
-    # writeln('Goal:').
-    # iterate(attackGoal(G),
-    #         (write(' '), write_canonical(G), nl)).
-    # told.
-    # # tabling breaks the  pyxsb_command but works with lowlevel api :?
-    # UPDATE: 3.7 fails... rolling back to 3.6 works
-    # TODO: clean up
-    # c2p_functor(b"consult", 1, reg_term(1))
-    # c2p_string(b"environment", p2p_arg(reg_term(1), 1))
-    # xsb_command()
-    pyxsb_command('[environment].')
+      # xsb 2>xsb_log.txt 1>&2 <<EOF
+      # [environment].
+      # tell('goals.txt').
+      # writeln('Goal:').
+      # iterate(attackGoal(G),
+      #         (write(' '), write_canonical(G), nl)).
+      # told.
+      # # tabling breaks the  pyxsb_command but works with lowlevel api :?
+      # UPDATE: 3.7 fails... rolling back to 3.6 works
+      # TODO: clean up
+      # c2p_functor(b"consult", 1, reg_term(1))
+      # c2p_string(b"environment", p2p_arg(reg_term(1), 1))
+      # xsb_command()
+      pyxsb_command('[environment].')
 
-    # c2p_functor(b"tell", 1, reg_term(1))
-    # c2p_string(b"goals.txt", p2p_arg(reg_term(1), 1))
-    # xsb_command()
-    pyxsb_command("tell('goals.txt').")
+      # c2p_functor(b"tell", 1, reg_term(1))
+      # c2p_string(b"goals.txt", p2p_arg(reg_term(1), 1))
+      # xsb_command()
+      pyxsb_command("tell('goals.txt').")
 
-    pyxsb_command('writeln("Goal:"). ')
+      pyxsb_command('writeln("Goal:"). ')
 
-    # c2p_functor(b"iterate", 1, reg_term(1))
-    # c2p_string(b"attackGoal(G),(write(' '), write_canonical(G), nl)",
-    # p2p_arg(reg_term(1), 1))
-    # xsb_command()
-    pyxsb_command(
-      "iterate(attackGoal(G),(write(' '), write_canonical(G), nl)).")
-    pyxsb_command('told.')
-    #     pyxsb_end_session()
+      # c2p_functor(b"iterate", 1, reg_term(1))
+      # c2p_string(b"attackGoal(G),(write(' '), write_canonical(G), nl)",
+      # p2p_arg(reg_term(1), 1))
+      # xsb_command()
+      pyxsb_command(
+        "iterate(attackGoal(G),(write(' '), write_canonical(G), nl)).")
+      pyxsb_command('told.')
+      #     pyxsb_end_session()
 
-    #     pyxsb_start_session(XSB_ARCH_DIR)
-    # c2p_functor(b"consult", 1, reg_term(1))
-    # c2p_string(b"run", p2p_arg(reg_term(1), 1))
-    # xsb_command()
-    pyxsb_command('[run].')
+      #     pyxsb_start_session(XSB_ARCH_DIR)
+      # c2p_functor(b"consult", 1, reg_term(1))
+      # c2p_string(b"run", p2p_arg(reg_term(1), 1))
+      # xsb_command()
+      pyxsb_command('[run].')
 
-    # dump facts to file before exit
-    facts_dict = self.queryMulValFacts()
-    factfile = SEP.join((FLAGS.base_dir,'mulval_facts.json'))
+      # dump facts to file before exit
+      facts_dict = self.queryMulValFacts()
+      factfile = SEP.join((self.base_dir,'mulval_facts.json'))
 
-    logging.debug('writing facts file to {}...'.format(factfile))
-    with open(factfile, 'w') as file:
-      json.dump(facts_dict, file)
+      logging.debug('writing facts file to {}...'.format(factfile))
+      with open(factfile, 'w') as file:
+        json.dump(facts_dict, file)
 
-    pyxsb_end_session()
+      pyxsb_end_session()
 

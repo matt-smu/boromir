@@ -28,6 +28,21 @@ from py_mulval import attack_graph
 # from py_mulval import py_mulval
 from py_mulval import sample
 from py_mulval import vm_util
+import os
+SEP = os.path.sep
+import sys
+
+from py_mulval import configs
+from py_mulval import data
+from py_mulval import flags
+# from py_mulval import genTransMatrix
+from py_mulval import attack_graph
+# from py_mulval import mulpy
+# from py_mulval import py_mulval
+from py_mulval import sample
+from py_mulval import vm_util
+from py_mulval import benchmark_utils as bmutil
+
 
 from py_mulval.metrics.ag_metrics import metf_ml
 
@@ -54,25 +69,9 @@ def GetConfig(user_config):
 
 
 def Prepare(benchmark_spec):
-  # A = AttackGraph(inputDir=inputDir, scriptsDir=scriptsDir, opts=opts
   if not benchmark_spec.attack_graph:
-    inputDir = data.ResourcePath('attack_graphs')
-    outputDir = vm_util.GetTempDir()
-    outfileName = os.path.splitext(FLAGS.input_file)[0]  # 'input'
-    scriptsDir = data.ResourcePath('secmet')
-    # pathlib.Path(FLAGS.output_dir).mkdir(parents=True, exist_ok=True)
-
-    opts = dict()
-    opts['scriptsDir'] = scriptsDir
-    opts['inputDir'] = inputDir
-    opts['outputDir'] = outputDir
-    opts['outfileName'] = outfileName
-    opts['PLOT_INTERMEDIATE_GRAPHS'] = FLAGS.secmet_plot_intermediate_graphs
-    matrix_file = vm_util.PrependTempDir(outfileName + '.csv')
-    opts['MatrixFile'] = matrix_file
-
-    benchmark_spec.attack_graph = attack_graph.AttackGraph(**opts)
-
+    ag = bmutil.get_attack_graph()
+    benchmark_spec.attack_graph = ag
 
 def Run(benchmark_spec):
   """Collect metf Metrics for an attack graph

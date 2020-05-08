@@ -23,6 +23,22 @@ from py_mulval import py_mulval
 
 # from py_mulval.windows_packages import iperf3
 
+
+import os
+SEP = os.path.sep
+import sys
+
+from py_mulval import configs
+from py_mulval import data
+from py_mulval import flags
+# from py_mulval import genTransMatrix
+from py_mulval import attack_graph
+# from py_mulval import mulpy
+# from py_mulval import py_mulval
+from py_mulval import sample
+from py_mulval import vm_util
+from py_mulval import benchmark_utils as bmutil
+
 FLAGS = flags.FLAGS
 
 BENCHMARK_NAME = 'struct_secmet'
@@ -53,7 +69,9 @@ def GetConfig(user_config):
 
 
 def Prepare(benchmark_spec):
-  pass
+  if not benchmark_spec.attack_graph:
+    ag = bmutil.get_attack_graph()
+    benchmark_spec.attack_graph = ag
 
 
 def Run(benchmark_spec):

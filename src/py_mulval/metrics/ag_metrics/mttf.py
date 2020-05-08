@@ -31,8 +31,7 @@ Quantitative assessment of operational security: Models and tools.
 Information Systems Security, ed. by SK Katsikas and D. Gritzalis, London, 
 Chapman & Hall (1996), 179–86."""
 METRIC_UNIT = "weeks"
-METRIC_SUMMARY = """"Mean Time To Failure: Determines the survival function complement from reliability engineering. 
-"""
+METRIC_SUMMARY = """"Mean Time To Failure: Determines the survival function complement from reliability engineering."""
 
 # SCORE_MAP = 'cvss2time'
 
@@ -89,7 +88,8 @@ class mttf_metric(AGBasedSecMet):
 
     self.CheckPreReqs()
     A = self.ag
-    A.name = os.path.splitext(FLAGS.input_file)[0]
+    print('-----', A.name)
+    # A.name = os.path.splitext(FLAGS.input_file)[0]
     if FLAGS.secmet_plot_intermediate_graphs:
       A.plot2(outfilename=A.name + '_001_orig.png')
 

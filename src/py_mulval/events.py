@@ -39,7 +39,7 @@ parsed, temporary directory initialized, run_uri set).
 Sender: None
 Payload: parsed_flags, the parsed FLAGS object.""")
 
-provider_imported = _events.signal('provider-imported', doc="""
+metric_imported = _events.signal('metric-imported', doc="""
 Signal sent after a cloud provider's modules have been imported.
 
 Sender: string. Cloud provider name chosen from providers.VALID_CLOUDS.""")

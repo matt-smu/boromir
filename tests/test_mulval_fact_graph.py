@@ -23,8 +23,6 @@ from py_mulval.mulval_fact_graph import FactGraph
 
 # import tests.common_test_case
 
-flags.DEFINE_integer('benchmark_spec_test_flag', 0, 'benchmark_spec_test flag.')
-
 FLAGS = flags.FLAGS
 
 NAME = 'metf_ml'
@@ -68,11 +66,11 @@ class TestFactGraph(_FactGraphTestCase):
 
   def test_parse_hacl(self):
     hosts = self.factgraph.parseHacl()
-    print(hosts)
+    # print(hosts)
 
   def test_to_agraph(self):
     A = nx.nx_agraph.to_agraph(self.factgraph)
-    print('fg: ',self.factgraph)
-    print('A: ', A)
+    # print('fg: ',self.factgraph)
+    # print('A: ', A)
 
 

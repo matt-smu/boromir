@@ -7,6 +7,9 @@ import re
 import sys
 import warnings
 from copy import deepcopy
+
+import os
+SEP = os.path.sep
 from pathlib import Path
 
 import MySQLdb
@@ -89,24 +92,50 @@ class AttackGraph(nx.MultiDiGraph):
             self.inputDir = kwargs['inputDir']
             logging.debug(('inputDir: ', self.inputDir))
 
-        self.outputDir = self.inputDir #os.cwd()
+        self.outputDir = self.inputDir #os.cwd()#mttf:
+##    flag_matrix: fmatrix
+##    flag_matrix_defs:
+##        fmatrix:
+##            input_file: ['single_host_1.P', 'multi_host_1.P']
+##            rule: ['local_exploit_rules.P']
+###            secmet_map_scores: [ 'cvss2time', 'cvss2effort']
+##            secmet_fix_cvss_score: [1, 2, 3, 4, 5, 6,  7, 8, 9, 10]
+#    flags:
+##        secmet_score_strategy: 'reliability'
+#
+#        secmet_plot_intermediate_graphs: False
+#
+#        models_dir: /opt/projects/diss/py-mulval/data/models
+#        rules_dir: /opt/projects/diss/py-mulval/data/rules
+#        data_dir: /opt/projects/diss/py-mulval/data
+#        secmet_ag_path: AttackGraph.dot
+#
+#        secmet_random_cvss_score: True
+#
+#        #    secmet_fix_cvss_score: 1
+#        secmet_map_scores: 'cvss2time'
+#        #        input_file: single_ho(st_1.P
+#        #        rule: local_exploit_rules.P
         if 'outputDir' in kwargs.keys():
             self.outputDir = kwargs['outputDir']
             logging.debug(('output: ', self.outputDir))
 
-        # if os.path.exists(self.scriptsDir + '/' + SCORE_DICT):
-        if Path(self.scriptsDir + '/' + SCORE_DICT).exists():
-            with open(self.scriptsDir + '/' + SCORE_DICT) as f:
-                # logging.debug((f.readlines()))
-                self.conf_override = yaml.safe_load(f)
-                # logging.debug(('conf_overrides', self.conf_override))
-                self.coalesced_rules = self.conf_override['coalesce_rules']
-                # logging.debug(('coalesced rules loaded: ', self.coalesced_rules))
-                self.exploit_rules = self.conf_override['exploit_rules']
-                self.exploitDict = self.conf_override['exploitDict']
+        if self.scriptsDir and Path(SEP.join((self.scriptsDir, SCORE_DICT))).exists():
+            self.load_score_dict(SEP.join((self.scriptsDir, SCORE_DICT)))
+
+        # # if os.path.exists(self.scriptsDir + '/' + SCORE_DICT):
+        # if Path(self.scriptsDir + '/' + SCORE_DICT).exists():
+        #     with open(self.scriptsDir + '/' + SCORE_DICT) as f:
+        #         # logging.debug((f.readlines()))
+        #         self.conf_override = yaml.safe_load(f)
+        #         # logging.debug(('conf_overrides', self.conf_override))
+        #         self.coalesced_rules = self.conf_override['coalesce_rules']
+        #         # logging.debug(('coalesced rules loaded: ', self.coalesced_rules))
+        #         self.exploit_rules = self.conf_override['exploit_rules']
+        #         self.exploitDict = self.conf_override['exploitDict']
 
         # Prevent slowdown from writing lots of pictures to disk
-        self.PLOT_INTERMEDIATE_GRAPHS = True
+        self.PLOT_INTERMEDIATE_GRAPHS = False
         if 'PLOT_INTERMEDIATE_GRAPHS' in kwargs.keys():
             self.PLOT_INTERMEDIATE_GRAPHS = kwargs['PLOT_INTERMEDIATE_GRAPHS']
             logging.debug(('PLOT_INTERMEDIATE_GRAPHS: ', self.PLOT_INTERMEDIATE_GRAPHS))
@@ -174,6 +203,7 @@ class AttackGraph(nx.MultiDiGraph):
         self.data = read_dot(dot_file_path)
         super(AttackGraph, self).__init__(self.data)
         self.__updateAG()
+        return 0
 
     def load_dot_string(self, dot_string):
         logging.info('loading dot string: %s', dot_string)

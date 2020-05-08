@@ -17,7 +17,7 @@ from py_mulval import attack_graph
 # from py_mulval import sample
 # from py_mulval import vm_util
 from py_mulval.metrics.security_metric import AGBasedSecMet
-import py_mulval.metrics.security_metric as secmet
+# import py_mulval.metrics.security_metric as secmet
 FLAGS = flags.FLAGS
 
 METRIC_NAME = "metf_ml"

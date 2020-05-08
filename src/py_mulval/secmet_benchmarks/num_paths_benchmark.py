@@ -14,20 +14,30 @@
 
 """Run struct_secmet."""
 import os
-import pathlib
-import networkx
-from networkx.readwrite import json_graph
-import json
+
+# from py_mulval import genTransMatrix
+from py_mulval import attack_graph
+from py_mulval import data
+from py_mulval import sample
+from py_mulval import vm_util
+from py_mulval.benchmark_sets import *
+
+
+import os
+SEP = os.path.sep
+import sys
 
 from py_mulval import configs
 from py_mulval import data
 from py_mulval import flags
 # from py_mulval import genTransMatrix
 from py_mulval import attack_graph
-from py_mulval import mulpy
-from py_mulval import py_mulval
+# from py_mulval import mulpy
+# from py_mulval import py_mulval
 from py_mulval import sample
 from py_mulval import vm_util
+from py_mulval import benchmark_utils as bmutil
+
 from py_mulval.metrics.ag_metrics import num_paths
 
 FLAGS = flags.FLAGS

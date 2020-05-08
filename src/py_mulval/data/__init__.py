@@ -150,7 +150,8 @@ class PackageResourceLoader(ResourceLoader):
 
 DATA_PACKAGE_NAME = 'py_mulval.data'
 AG_DOT_DIR_NAME = os.path.join(
-    os.path.dirname(py_mulval.__file__), 'data/attack_graphs')
+    # os.path.dirname(py_mulval.__file__), 'data/attack_graphs')
+    os.path.dirname(py_mulval.__file__), 'data/boromir')
 SECMET_DATA_DIR_NAME = os.path.join(
     os.path.dirname(py_mulval.__file__), 'data/secmet')
 MULVAL_MODEL_DIR_NAME = os.path.join(
