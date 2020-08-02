@@ -3,7 +3,7 @@
 import os
 import sys
 
-import networkx
+import networkx as nx
 from absl.testing import flagsaver
 
 import py_mulval
@@ -26,7 +26,9 @@ from py_mulval.attack_graph import AttackGraph
 from py_mulval.configs import benchmark_config_spec
 # from py_mulval.linux_benchmarks import iperf_benchmark
 # from py_mulval.providers.gcp import util
-from py_mulval.metrics.ag_metrics.nra_amc import nra_amc_metric
+from py_mulval.graphml import graph_stochastics
+from py_mulval.metrics.ag_metrics.mttf import mttf_metric
+from py_mulval.metrics.ag_metrics.nra_amc import *
 from tests import common_test_case
 SEP = os.path.sep
 # import tests.common_test_case
@@ -178,7 +180,7 @@ class _MetricTestCase(common_test_case.CommonTestCase):
     ag.scriptsDir = data.ResourcePath('secmet')
     ag.load_score_dict(SEP.join((data.ResourcePath('secmet'), attack_graph.SCORE_DICT)))
     # ag.inputDir = input_models_dir
-    ag.outputDir = vm_util.GetTempDir()
+    # ag.outputDir = vm_util.GetTempDir()
     ag.load_dot_string(dots)
     return ag
 
@@ -199,13 +201,43 @@ class _MetricTestCase(common_test_case.CommonTestCase):
 class TestMetrics(_MetricTestCase):
 
   @flagsaver.flagsaver(secmet_random_seed='rando12345', run_uri='test5678')
-  def test_metric_nra_amc(self):
-    metric = nra_amc_metric()
-    self.assertIsNotNone(metric)
-    ag = self._CreateAGFromDotString()
-    metric.ag = ag
-    result, metadata = metric.calculate()
-test_metrics.py
+  def test_sim_tmatrix(self):
+    ag = attack_graph.AttackGraph()
+    ag.load_dot_file('/opt/projects/diss/py-mulval/data/mulval_ag/small_enterprise/AttackGraph.dot')
+    ag.name = 'small_enterprise'
+    ag.load_score_dict('/opt/projects/diss/py-mulval/src/py_mulval/data/secmet/scoreDict.yml')
+    ag.PLOT_INTERMEDIATE_GRAPHS = False
+    ag.map_scores = 'cvss2time'
+    reduced_ag = ag.getReducedGraph()
+    node_list = list(nx.topological_sort(reduced_ag))
+
+    # reduced_ag = ag.getReducedGraph()
+    # self.normalize_scores_graph1(reduced_ag, weight='score_orig')
+    # node_list = list(nx.topological_sort(reduced_ag))
+    # plot_ag(reduced_ag, 'Reduced Attack Graph is the Markov Transition Matrix', )
+    # P_orig = nx.adjacency_matrix(reduced_ag, nodelist=node_list, weight='score')
+    # P_normal = nx.adjacency_matrix(reduced_ag, nodelist=node_list, weight='weighted_score')
+
+    # metric = mttf_metric()
+    # self.assertIsNotNone(metric)
+    # ag = self._CreateAGFromDotString()
+    # graph_stochastics
+    # metric.ag = ag
+    # result, metadata = metric.calculate()
+
+    state = [2000, 0, 0, 0, 0, 0]
+
+    transition = [
+        [0.0, 0.5, 0.5, 0.0, 0.0, 0.0], [0.0, 0.2, 0.2, 0.6, 0.0, 0.0], [0.0, 0.0, 0.4, 0.0, 0.4, 0.2],
+        [0.2, 0.1, 0.0, 0.3, 0.0, 0.4], [0.0, 0.0, 0.0, 0.0, 1.0, 0.0], [0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
+    ]
+
+    stateTrack, length, state = graph_stochastics.AGMarkov(ag)
+    # stateTrack, length, state = graph_stochastics.MarkovChain(state, transition, 30)
+    # print(stateTrack, length, state)
+    graph_stochastics.PlotMarkov(stateTrack, length, state)
+
+
 
 
 

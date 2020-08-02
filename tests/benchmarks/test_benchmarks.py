@@ -146,6 +146,21 @@ class TestBenchmarks(_BenchmarkTestCase):
     for benchmark_module in all_benchmarks:
       self.assertIsInstance(benchmark_module.GetConfig({}), dict)
 
+class TestBenchmarks(_BenchmarkTestCase):
+  def testStandardSet(self):
+    self.assertIn(benchmark_sets.STANDARD_SET, benchmark_sets.BENCHMARK_SETS)
+    standard_set = (benchmark_sets.BENCHMARK_SETS[benchmark_sets.STANDARD_SET])[benchmark_sets.BENCHMARK_LIST]
+    self.assertIn('mttf', standard_set)
+    self.assertIn('num_paths', standard_set)
+
+  def testDefaultBenchmarks(self):
+    print('Valid Benchmarks: ', self.valid_benchmark_names)
+
+  def testLoadAllDefaultConfigs(self):
+    all_benchmarks = (secmet_benchmarks.BENCHMARKS)
+    for benchmark_module in all_benchmarks:
+      self.assertIsInstance(benchmark_module.GetConfig({}), dict)
+
   # def testLoadValidConfig(self):
   #   self.assertIsInstance(
   #       configs.LoadMinimalConfig(VALID_CONFIG, CONFIG_NAME), dict)
