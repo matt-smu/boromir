@@ -21,7 +21,7 @@ from py_mulval.metrics.security_metric import AGBasedSecMet
 FLAGS = flags.FLAGS
 
 METRIC_NAME = "metf_ml"
-METRIC_UNIT = "effs"
+METRIC_UNIT = "UNK"
 CITATION_SHORT = 'Ortalo1999'
 USAGE = """Accepts an attack graph and the node to start from, or looks for the origin if no node provided"""
 METRIC_SUMMARY = """"Determines the survival function complement from reliability engineering."""
@@ -77,7 +77,7 @@ class metf_ml_metric(AGBasedSecMet):
     self.CheckPreReqs()
     A = self.ag
 
-    A.name = os.path.splitext(FLAGS.input_file)[0]
+    # A.name = os.path.splitext(FLAGS.input_file)[0]
     if FLAGS.secmet_plot_intermediate_graphs:
       A.plot2(outfilename=A.name + '_001_orig.png')
 

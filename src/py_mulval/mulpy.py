@@ -203,7 +203,7 @@ def _RunMulVal():
   # logging.info('verts: %s' % verts)
 
   gg.writeFile(FLAGS.base_dir + '/ARCS.CSV', arcs)
-  print('------------writing ag---------', FLAGS.base_dir)
+  #  print('------------writing ag---------', FLAGS.base_dir)
   gg.writeFile(FLAGS.base_dir + '/VERTICES.CSV', verts)
 
   ag.render()

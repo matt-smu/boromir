@@ -63,8 +63,8 @@ FLAGS = flags.FLAGS
 FLAGS = flags.FLAGS
 
 DEFAULT_AG_NAME = "AttackGraph.dot"
-# DEFAULT_AG_MODEL_NAME = "input.P"
-DEFAULT_AG_MODEL_NAME = None
+DEFAULT_AG_MODEL_NAME = "input.P"
+# DEFAULT_AG_MODEL_NAME = None
 DEFAULT_FG_NAME = '.'.join(('mulval_facts','input', 'dot'))
 
 def get_attack_graph():
@@ -127,9 +127,17 @@ def get_input_models_dir():
 
 def get_infilename():
   """ Gets the current model being used (with extension)
+
+  @TODO there are too many different flags / options to specify this, need to settle on one
   :return:
   """
-  return FLAGS.input_file or DEFAULT_AG_MODEL_NAME
+  # input_file = FLAGS.input_file or DEFAULT_AG_MODEL_NAME
+  input_file = FLAGS.input_file
+  if not input_file:
+    input_file = FLAGS.input_model_name
+  if not input_file:
+    input_file = DEFAULT_AG_MODEL_NAME
+  return input_file
 
 def get_basefilename():
   """ the base filename to construct related files from
@@ -329,7 +337,7 @@ def _RunMulVal(**mulval_args):
     # logging.info('verts: %s' % verts)
 
     gg.writeFile(get_baseDir() + '/ARCS.CSV', arcs)
-    print('------------writing ag---------', get_baseDir())
+    #  print('------------writing ag---------', get_baseDir())
     gg.writeFile(get_baseDir() + '/VERTICES.CSV', verts)
 
     ag.render()
@@ -480,7 +488,7 @@ def get_mulval_graphgen_args():
       # 'rule_files':            [],
       # 'rule_files_additional': [],
   }
-  print(mulval_args)
+  #  print(mulval_args)
 
   return mulval_args
 

@@ -53,14 +53,14 @@ BENCHMARK_CONFIG = """
 metf_ml:
   description: Run metf metric
   flags:
-    input_file: single_host_1.P
-    rule: local_exploit_rules.P
-    models_dir: /opt/projects/diss/py-mulval/data/models 
-    rules_dir: /opt/projects/diss/py-mulval/data/rules 
-    data_dir: /opt/projects/diss/py-mulval/data
-    secmet_ag_path: AttackGraph.dot
-    # output_dir: 
-  # vm_groups:
+  #   input_file: single_host_1.P
+  #   rule: local_exploit_rules.P
+  #   models_dir: /opt/projects/diss/py-mulval/data/models 
+  #   rules_dir: /opt/projects/diss/py-mulval/data/rules 
+  #   data_dir: /opt/projects/diss/py-mulval/data
+  #   secmet_ag_path: AttackGraph.dot
+  #   # output_dir: 
+  # # vm_groups:
 """
 
 
@@ -69,6 +69,7 @@ def GetConfig(user_config):
 
 
 def Prepare(benchmark_spec):
+
   if not benchmark_spec.attack_graph:
     ag = bmutil.get_attack_graph()
     benchmark_spec.attack_graph = ag
@@ -87,7 +88,7 @@ def Run(benchmark_spec):
   metric = metf_ml.metf_ml_metric()
   metric.ag = benchmark_spec.attack_graph
   value, metadata = metric.calculate()
-  print(metadata)
+  #  print(metadata)
   results.append(
     sample.Sample(metric.METRIC_NAME, value,
                   metric.METRIC_UNIT, metadata))

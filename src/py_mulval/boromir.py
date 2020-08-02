@@ -406,7 +406,7 @@ def _InjectBenchmarkInfoIntoDocumentation():
       (set_name, benchmark_sets.BENCHMARK_SETS[set_name]['message'])
       for set_name in benchmark_sets.BENCHMARK_SETS]
   sys.modules['__main__'].__doc__ = (
-      'PerfKitBenchmarker version: {version}\n\n{doc}\n'
+      'Boromir version: {version}\n\n{doc}\n'
       'Benchmarks (default requirements):\n'
       '\t{benchmark_doc}').format(
           version=version.VERSION,
@@ -1056,7 +1056,7 @@ def SetUpPKB():
         log_path=vm_util.PrependTempDir(LOG_FILE_NAME),
         run_uri=FLAGS.run_uri,
         file_log_level=log_util.LOG_LEVELS[FLAGS.file_log_level])
-  logging.info('PerfKitBenchmarker version: %s', version.VERSION)
+  logging.info('Boromir version: %s', version.VERSION)
 
   # Translate deprecated flags and log all provided flag values.
   # disk.WarnAndTranslateDiskFlags()

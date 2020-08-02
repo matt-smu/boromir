@@ -95,8 +95,11 @@ class FactGraph(nx.MultiDiGraph):
     else:
       logging.error('json file doesnt exist: '.format(json_file_path))
 
-
-
+  def load_json_string(self, json_string):
+    """loads a json dict of mulval facts and updates graph"""
+    logging.info('loading json file: %s', json_string)
+    self.facts_dict = json.loads(json_string)
+    self.parseFactsFromDict()
 
   def load_dot_string(self, dot_string):
     logging.info('loading dot string: %s', dot_string)

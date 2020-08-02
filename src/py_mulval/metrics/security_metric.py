@@ -4,11 +4,14 @@ import logging
 import pygraphviz
 from pathlib import Path
 import sys
+import json
 import os
 SEP = os.path.sep
 from py_mulval import errors
 from py_mulval import flag_util
-
+from py_mulval import benchmark_utils as bmutil
+import networkx
+import pprint
 from py_mulval.mulval_fact_graph import FactGraph
 
 from absl import flags
@@ -41,11 +44,19 @@ class BaseSecurityMetric(object):
     self.CITATION_FULL = current_module.CITATION_FULL
     self.METRIC_SUMMARY = current_module.METRIC_SUMMARY
 
+    self.random_seed = FLAGS.secmet_random_seed
     self.fg = None
     self.fg_path = None
+    self.score_strategy = None
+
     # FactGraph() # input system model common to all metrics
     # self.loadFactsGraph()
     super().__init__()
+
+    self.metric_properties = {'random_seed': self.random_seed,
+                              'cvss_based': None,
+                              'weight': 'score',
+                              }
 
   def loadFactsGraphDot(self, fg_dot_path):
     self.fg = FactGraph.from_agraph(pygraphviz.AGraph(FLAGS.secmet_fg_dot))
@@ -103,6 +114,17 @@ class BaseSecurityMetric(object):
 
         'input_model': self.fg
     }
+
+    if not self.fg:
+      self.fg = bmutil.get_fact_graph()
+
+    if self.fg:
+      metadata['facts_graph_orig'] = self.fg.to_dots()
+      json_file_path = bmutil.get_fg_jsonfile_location()
+
+      with open(json_file_path, 'r') as infile:
+        self.facts_dict = json.load(infile)
+      metadata['facts_json'] = self.facts_dict
     flags_sent = flag_util.GetProvidedCommandLineFlags()
     metadata.update(flags_sent)
     metadata['facts_graph'] = self.fg.to_dots() if self.fg else None
@@ -153,4 +175,130 @@ class AGBasedSecMet(BaseSecurityMetric):
     if not self.ag:
       raise errors.Error('AG Metric called without an attack graph set')
     pass
+
+
+
+
+  def normalize_scores(self, o, weight='score', strategy=None):
+    if strategy == 'matrix_1':
+      return self.normalize_scores_matrix1(o, weight=weight)
+    else:
+      return self.normalize_scores_graph1(o, weight=weight)
+
+  def normalize_scores_matrix1(self, Q, weight='score', strategy=None):
+    """ makes cvss scores into probabilities
+    :param Q:
+    :return:
+    """
+    f = Q.sum(axis=1)
+    with np.errstate(divide='ignore', invalid='ignore'):
+      Q = Q / f
+    Q[np.isnan(Q)] = 0
+    return Q
+
+  def normalize_scores_graph1(self, g, weight='score', strategy=None):
+    """ makes cvss scores into probabilities according to [Abraham2014]
+    add new edge label 'weighted_score' so return matrix isnt needed here
+    this can be done in attack graph too (set edge scores)
+    :param weight: the edge labels to normalize
+    :return:
+    """
+
+    if strategy is None or strategy == 'abr2014':
+      nodetally = {}
+      # nodetally['nodes'] = {}
+      nodelist = list(networkx.topological_sort(g))
+      NEW_EDGE_LABEL = 'weighted_score'
+
+
+      for n in g.nodes():
+        # only concerned with outbound probs in this weighting method
+        nodetally[n] = {}
+        # pprint.pprint(nodetally)
+
+        nodetally[n]['succs_sum'] = 0
+        nodetally[n]['succs_count'] = 0
+        nodetally[n]['preds_sum'] = 0
+        nodetally[n]['preds_count'] = 0
+
+        # i_edges = [((u, v, k), e) for u, v, k, e in g.in_edges(n, keys=True, data=True)]
+        o_edges = [((u, v, k), e) for u, v, k, e in g.out_edges(n, keys=True, data=True)]
+
+        # for (u, v, k), e in i_edges:
+        #   if weight not in g[u][v][k].keys():
+        #     nodetally[u][v][k][weight] = None
+        #   if g[u][v][k][weight] is not None:
+        #     nodetally[n]['preds_sum'] += g[u][v][k][weight]
+        #   nodetally[n]['preds_count'] += 1
+
+        for (u, v, k), e in o_edges:
+          if weight not in g[u][v][k].keys():
+            nodetally[u][v][k][weight] = None
+          if g[u][v][k][weight] is not None:
+            nodetally[n]['succs_sum'] += g[u][v][k][weight]
+          nodetally[n]['succs_count'] += 1
+
+          denom = nodetally[n]['succs_sum']
+          for (u, v, k), e in o_edges:
+            if weight not in g[u][v][k].keys():
+              nodetally[u][v][k][weight] = None
+            if g[u][v][k][weight] is not None and g[u][v][k][weight] > 0:
+              g[u][v][k]['weighted_score']= g[u][v][k][weight] / denom
+
+        # if not self.score_strategy:
+        #   denom = nodetally[n]['succs_sum'] + nodetally[n]['preds_sum']
+          # self.setEdgeScore(n, n, self.getSelfEdge(n), self.nodes[n]['preds_sum'], self.nodes[n]['preds_sum'])
+          # logging.debug((
+          # "sums: node[{}] outsum[{}] insum[{}] denom[{}] selfedge[{}]".format(n, nodetally[n]['succs_sum'],
+          # nodetally[n]['preds_sum'], denom))) #, nodetally[n][n][nodetally.getSelfEdge(n)]['score'])))
+      # pprint.pprint(nodetally)
+      q = networkx.adjacency_matrix(g, nodelist, weight=NEW_EDGE_LABEL)
+      # print(nodelist, q.todense())
+      # return q
+
+      if strategy == 'abr2015':
+        nodetally = {}
+        # nodetally['nodes'] = {}
+        nodelist = list(networkx.topological_sort(g))
+        NEW_EDGE_LABEL = 'weighted_score'
+
+        for n in g.nodes():
+          # only concerned with outbound probs in this weighting method
+          nodetally[n] = {}
+          # pprint.pprint(nodetally)
+
+          nodetally[n]['succs_sum'] = 0
+          nodetally[n]['succs_count'] = 0
+          nodetally[n]['preds_sum'] = 0
+          nodetally[n]['preds_count'] = 0
+
+          # i_edges = [((u, v, k), e) for u, v, k, e in g.in_edges(n, keys=True, data=True)]
+          o_edges = [((u, v, k), e) for u, v, k, e in g.out_edges(n, keys=True, data=True)]
+
+          # for (u, v, k), e in i_edges:
+          #   if weight not in g[u][v][k].keys():
+          #     nodetally[u][v][k][weight] = None
+          #   if g[u][v][k][weight] is not None:
+          #     nodetally[n]['preds_sum'] += g[u][v][k][weight]
+          #   nodetally[n]['preds_count'] += 1
+
+          for (u, v, k), e in o_edges:
+            if weight not in g[u][v][k].keys():
+              nodetally[u][v][k][weight] = None
+            if g[u][v][k][weight] is not None:
+              nodetally[n]['succs_sum'] += g[u][v][k][weight]
+            nodetally[n]['succs_count'] += 1
+
+            denom = nodetally[n]['succs_sum']
+            for (u, v, k), e in o_edges:
+              if weight not in g[u][v][k].keys():
+                nodetally[u][v][k][weight] = None
+              if g[u][v][k][weight] is not None and g[u][v][k][weight] > 0:
+                g[u][v][k]['weighted_score'] = g[u][v][k][weight] / denom
+
+          # if not self.score_strategy:  #   denom = nodetally[n]['succs_sum'] + nodetally[n]['preds_sum']  # self.setEdgeScore(n, n, self.getSelfEdge(n), self.nodes[n]['preds_sum'], self.nodes[n]['preds_sum'])  # logging.debug((  # "sums: node[{}] outsum[{}] insum[{}] denom[{}] selfedge[{}]".format(n, nodetally[n]['succs_sum'],  # nodetally[n]['preds_sum'], denom))) #, nodetally[n][n][nodetally.getSelfEdge(n)]['score'])))
+        # pprint.pprint(nodetally)
+        q = networkx.adjacency_matrix(g, nodelist, weight=NEW_EDGE_LABEL)  # print(nodelist, q.todense())  # return q
+
+
 

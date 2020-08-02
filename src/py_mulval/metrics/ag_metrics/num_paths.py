@@ -32,8 +32,9 @@ class num_paths_metric(AGBasedSecMet):
     target = list(self.ag.getTargetByNoEgressEdges())[0]
     all_paths_before = list(networkx.all_simple_paths(self.ag,origin,target))
 
-    nodelist_post_reduce = self.tgraph.getNodeList()
-    all_paths_after = list(networkx.all_simple_paths(self.tgraph,nodelist_post_reduce[0],nodelist_post_reduce[-1]))
+    self.reduced_ag = self.ag.getReducedGraph()
+    nodelist_post_reduce = self.reduced_ag.getNodeList()
+    all_paths_after = list(networkx.all_simple_paths(self.reduced_ag,nodelist_post_reduce[0],nodelist_post_reduce[-1]))
     metadata = self.getMetaData()
     metadata.update({
         'all_paths_original': json.dumps(all_paths_before),

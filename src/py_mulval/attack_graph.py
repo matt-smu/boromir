@@ -238,7 +238,9 @@ class AttackGraph(nx.MultiDiGraph):
         plt.show()
 
     def __updateAG(self):
+        # for node in self.getnodes().keys():
         for node in self.nodes.keys():
+
 
             if 'shape' not in self.nodes[node].keys():
                 self.nodes[node]['type'] = 'attacker_origin'
@@ -297,7 +299,7 @@ class AttackGraph(nx.MultiDiGraph):
                         'map_scores', 'score_strategy', 'random_seed']
             for key in dict_keys:
                 metadata[key] = self.__dict__[key]
-            print(metadata)
+            #  print(metadata)
             return metadata
 
 

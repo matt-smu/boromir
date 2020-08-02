@@ -141,6 +141,8 @@ GCS_OBJECT_NAME_LENGTH = 20
 # call PublishSamples using Publishers added via this method.
 EXTERNAL_PUBLISHERS = []
 
+ignore_keys_toggle = [] # ignore keys for stdout
+ignore_keys_toggle = ['facts_graph', 'attack_graph', 'ag_reduced', 'attack_graph_orig', 'attack_graph_reduced', 'attack_graph_orig']
 
 def PublishRunStageSamples(benchmark_spec, samples):
   """Publishes benchmark run-stage samples immediately.
@@ -369,8 +371,12 @@ class PrettyPrintStreamPublisher(SamplePublisher):
 
   def _FormatMetadata(self, metadata):
     """Format 'metadata' as space-delimited key="value" pairs."""
+    ignore_keys = []
+    if self.stream.name in ['<stdout>', '<stdout>']: # save our console at least
+      ignore_keys = ignore_keys_toggle
+
     return ' '.join('{0}="{1}"'.format(k, v)
-                    for k, v in sorted(six.iteritems(metadata)))
+                    for k, v in sorted(six.iteritems(metadata)) if k not in ignore_keys)
 
   def PublishSamples(self, samples):
     # result will store the formatted text, then be emitted to self.stream and
@@ -410,9 +416,13 @@ class PrettyPrintStreamPublisher(SamplePublisher):
         result.write('  {0}\n'.format(
             self._FormatMetadata(benchmark_meta)))
 
+      ignore_keys = []
+      if self.stream.name in ['<stdout>', '<stderr>']:  # save our console at least
+        ignore_keys = ignore_keys_toggle
+
       for sample in test_samples:
         meta = {k: v for k, v in six.iteritems(sample['metadata'])
-                if k not in all_constant_meta}
+                if k not in (all_constant_meta | set(ignore_keys))}
         result.write('  {0:<30s} {1:>15f} {2:<30s}'.format(
             sample['metric'], sample['value'], sample['unit']))
         if meta:
@@ -451,9 +461,10 @@ class LogPublisher(SamplePublisher):
     data = [
         '\n' + '-' * 25 + 'BOROMIR Complete Results' + '-' * 25 +
         '\n']
+
     for sample in samples:
       data.append('%s\n' % self._pprinter.pformat(sample))
-    self.logger.log(self.level, ''.join(data))
+    # self.logger.log(self.level, ''.join(data))
 
 
 # TODO: Extract a function to write delimited JSON to a stream.

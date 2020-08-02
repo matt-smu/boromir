@@ -141,6 +141,17 @@ flags.DEFINE_enum('background_network_ip_type', IpAddressSubset.EXTERNAL,
                   'IP address type to use when generating background network '
                   'traffic')
 
+def SampleDist(*args, **kwargs):
+  """ @TODO something clever with distributions (like http://code.activestate.com/recipes/577264-random-numbers-with-arbitrary-probability-distribu/)
+
+  for now just return a seeded uniform rand on(0,1] and let the caller do the xforms
+  :param args:
+  :param kwargs:
+  :return: 0 < x <= 1
+  """
+
+
+
 
 def GetTempDir():
   """Returns the tmp dir of the current run."""

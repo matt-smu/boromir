@@ -260,7 +260,7 @@ class graph_gen(object):
     if all_rule_files and self.rulefiles_basedir:
       for rule in all_rule_files:
         rule = SEP.join((self.rulefiles_basedir, rule))
-        print(rule)
+        #  print(rule)
         if pathlib.Path(rule).exists():  # only add full paths here, and they must exist
           logging.info('adding rule: {}'.format(rule))
           self.rule_files.append(rule)  #
@@ -376,8 +376,8 @@ class graph_gen(object):
 
   def writeRulesFile(self, _RULE_FILES, _RULE_FILES_ADDITIONAL):
     """@TODO needs logic for placement, tabling, validation"""
-    print(self.base_dir, RUNNING_RULES_NAME,  _RULE_FILES, _RULE_FILES_ADDITIONAL)
-    print(self.base_dir, RUNNING_RULES_NAME, _RULE_FILES, _RULE_FILES_ADDITIONAL)
+    #  print(self.base_dir, RUNNING_RULES_NAME,  _RULE_FILES, _RULE_FILES_ADDITIONAL)
+    #  print(self.base_dir, RUNNING_RULES_NAME, _RULE_FILES, _RULE_FILES_ADDITIONAL)
     with open(SEP.join((self.base_dir,RUNNING_RULES_NAME)), 'w+') as outfile:
       for fname in chain(_RULE_FILES, _RULE_FILES_ADDITIONAL):
         with open(fname, 'r') as infile:
@@ -431,7 +431,7 @@ class graph_gen(object):
       #     print('------{}-------'.format(name))
       result = []
       for row in rows:
-        print(row)
+        #  print(row)
         items = parseRow(row)
         result.append(items)
       if name not in allfacts.keys():

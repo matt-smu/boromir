@@ -82,7 +82,7 @@ class shortest_path_metric(AGBasedSecMet):
 
     self.CheckPreReqs()
     A = self.ag
-    A.name = os.path.splitext(FLAGS.input_file)[0]
+    # A.name = os.path.splitext(FLAGS.input_file)[0]
     if FLAGS.secmet_plot_intermediate_graphs:
       A.plot2(outfilename=A.name + '_001_orig.png')
 
@@ -101,9 +101,9 @@ class shortest_path_metric(AGBasedSecMet):
       mttf_sum = 0
       for n in path:
         mttf_sum += reduced_ag.nodes[n]['mttf']
-        print(mttf_sum)
+        # print(mttf_sum)
       pw_dict.update({tuple(path): mttf_sum})
-      print(pw_dict)
+      # print(pw_dict)
     shortest_path_length = min(pw_dict.values())
     shortest_paths = [key for key in pw_dict if pw_dict[key] == shortest_path_length]
     # shortest_path = networkx.shortest_path(reduced_ag, origin, target, weight='weight')

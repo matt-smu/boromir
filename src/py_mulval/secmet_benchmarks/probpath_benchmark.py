@@ -12,13 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Run shortest attack path benchmark."""
+"""Run Mean Time To Failure benchmark."""
 import os
 # import pathlib
 # import networkx
 # from networkx.readwrite import json_graph
 # import json
-
 
 import os
 SEP = os.path.sep
@@ -35,50 +34,51 @@ from py_mulval import sample
 from py_mulval import vm_util
 from py_mulval import benchmark_utils as bmutil
 
-from py_mulval import configs
-from py_mulval import data
-from py_mulval import flags
-# from py_mulval import genTransMatrix
-from py_mulval import attack_graph
-# from py_mulval import mulpy
-# from py_mulval import py_mulval
-from py_mulval import sample
-from py_mulval import vm_util
-
-from py_mulval.metrics.ag_metrics import shortest_path_direct
-
+from py_mulval.metrics.ag_metrics import probpath
+import py_mulval.metrics
 FLAGS = flags.FLAGS
 
-BENCHMARK_NAME = shortest_path_direct.METRIC_NAME
+BENCHMARK_NAME = 'probpath'
 BENCHMARK_CONFIG = """
-shortest_path_direct:
-  description: Run shortest_attack_path metric
+probpath:
+  description: Run probpath metric
   flags:
-    # secmet_plot_intermediate_graphs
-  #   # secmet_fix_cvss_score: 1
-  #   secmet_map_scores: 'cvss2time'
-  #   input_file: single_host_1.P
-  #   rule: local_exploit_rules.P
-  #   models_dir: /opt/projects/diss/py-mulval/data/models 
-  #   rules_dir: /opt/projects/diss/py-mulval/data/rules 
-  #   data_dir: /opt/projects/diss/py-mulval/data
-  #   secmet_ag_path: AttackGraph.dot
-  # #   output_dir: /tmp/mulpy
+    # input_file: single_host_1.P
+    # input_file: h2v1s5.P
+    # rule: local_exploit_rules.P
+    ## set pointers below to change default locations for a test
+    # models_dir: /opt/projects/diss/py-mulval/data/models
+    # secmet_fg_path: /opt/projects/diss/py-mulval/data/facts 
+    # secmet_fg_name: mulval_facts.single_host_1.json
+    # rules_dir: /opt/projects/diss/py-mulval/data/rules 
+    # data_dir: /opt/projects/diss/py-mulval/data
+    # secmet_ag_path: AttackGraph.dot
+    # secmet_map_scores: cvss2time
+    # output_dir:  
+  # vm_groups:
 """
-
 
 def GetConfig(user_config):
   return configs.LoadConfig(BENCHMARK_CONFIG, user_config, BENCHMARK_NAME)
 
 
 def Prepare(benchmark_spec):
+  """ Prepare the benchmark
+  For all benchmarks, set the fact_graph in the spec
+  For AG metrics, set the attack_greph in the spec
+
+  :param benchmark_spec:
+  :return:
+  """
+
+
 
   if not benchmark_spec.attack_graph:
     ag = bmutil.get_attack_graph()
     benchmark_spec.attack_graph = ag
 
 def Run(benchmark_spec):
-  """Collect Shortest_Paths (direct) Metrics for an attack graph
+  """Collect MTTF Metrics for an attack graph
 
   Args:
     benchmark_spec: The benchmark specification. Contains all data that is
@@ -89,13 +89,14 @@ def Run(benchmark_spec):
   """
   results = []
 
-  metric = shortest_path_direct.shortest_path_direct_metric()
+  metric = probpath.probpath_metric()
+
   metric.ag = benchmark_spec.attack_graph
   value, metadata = metric.calculate()
   results.append(
     sample.Sample(metric.METRIC_NAME, value,
-                  shortest_path_direct.METRIC_UNIT, metadata))
-  # print(results)
+                  metric.METRIC_UNIT, metadata))
+
   return results
 
 

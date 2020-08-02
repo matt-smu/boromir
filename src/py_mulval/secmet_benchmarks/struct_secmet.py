@@ -46,15 +46,15 @@ BENCHMARK_CONFIG = """
 struct_secmet:
   description: Run struct metrics
   flags:
-    input_file: single_host_1.P
-    rule: local_exploit_rules.P
-    models_dir: /opt/projects/diss/py-mulval/data/models 
-    rules_dir: /opt/projects/diss/py-mulval/data/rules 
-    data_dir: /opt/projects/diss/py-mulval/data
-    secmet_ag_path: AttackGraph.dot
-    # output_dir: 
+#     input_file: single_host_1.P
+#     rule: local_exploit_rules.P
+#     models_dir: /opt/projects/diss/py-mulval/data/models 
+#     rules_dir: /opt/projects/diss/py-mulval/data/rules 
+#     data_dir: /opt/projects/diss/py-mulval/data
+#     secmet_ag_path: AttackGraph.dot
+#     # output_dir: 
   # vm_groups:
-"""
+# """
 
 CITATION_SHORT = 'cite_short'
 CITATION_FULL = 'long citation'
@@ -69,6 +69,7 @@ def GetConfig(user_config):
 
 
 def Prepare(benchmark_spec):
+
   if not benchmark_spec.attack_graph:
     ag = bmutil.get_attack_graph()
     benchmark_spec.attack_graph = ag

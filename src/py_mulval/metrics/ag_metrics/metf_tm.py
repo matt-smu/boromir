@@ -21,7 +21,7 @@ from py_mulval.metrics.security_metric import AGBasedSecMet
 FLAGS = flags.FLAGS
 METRIC_NAME = "metf_tm"
 USAGE = """Accepts an attack graph and the node to start from, or looks for the origin if no node provided"""
-METRIC_UNIT = "effs"
+METRIC_UNIT = "UNK"
 METRIC_SUMMARY = """"Mean Effort To Failure - Determines the survival function complement from reliability engineering."""
 CITATION_SHORT = 'Ortalo1999'
 CITATION_FULL = """Rodolphe Ortalo, Yves Deswarte, and Mohamed Kaâniche. 1999. Experimenting with quantitative evaluation tools for monitoring operational security. IEEE Transactions on Software Engineering 25, 5 (1999), 633–650.
@@ -76,7 +76,7 @@ class metf_tm_metric(AGBasedSecMet):
     self.CheckPreReqs()
     A = self.ag
 
-    A.name = os.path.splitext(FLAGS.input_file)[0]
+    # A.name = os.path.splitext(FLAGS.input_file)[0]
     if FLAGS.secmet_plot_intermediate_graphs:
       A.plot2(outfilename=A.name + '_001_orig.png')
 

@@ -47,15 +47,15 @@ BENCHMARK_CONFIG = """
 num_paths:
   description: Run num_paths metric
   flags:
-    input_model_name: single_host_1.P
-    rule: local_exploit_rules.P
-    models_dir: /opt/projects/diss/py-mulval/data/models 
-    rules_dir: /opt/projects/diss/py-mulval/data/rules 
-    data_dir: /opt/projects/diss/py-mulval/data
-    # secmet_ag_path: data/mulval_ag/small_enterprise
-    secmet_plot_intermediate_graphs: True
-    secmet_ag_name: AttackGraph.dot
-    secmet_score_dict: scoreDict_mttf.yml
+    # input_model_name: single_host_1.P
+    # rule: local_exploit_rules.P
+    # models_dir: /opt/projects/diss/py-mulval/data/models 
+    # rules_dir: /opt/projects/diss/py-mulval/data/rules 
+    # data_dir: /opt/projects/diss/py-mulval/data
+    # # secmet_ag_path: data/mulval_ag/small_enterprise
+    # secmet_plot_intermediate_graphs: True
+    # secmet_ag_name: AttackGraph.dot
+    # secmet_score_dict: scoreDict_mttf.yml
     # output_dir: 
   # vm_groups:
 """
@@ -65,8 +65,16 @@ def GetConfig(user_config):
 
 
 def Prepare(benchmark_spec):
-  pass
+  # pass
 
+  if not benchmark_spec.fact_graph:
+    fg = bmutil.get_fact_graph()
+    benchmark_spec.fact_graph = fg
+
+
+  if not benchmark_spec.attack_graph:
+    ag = bmutil.get_attack_graph()
+    benchmark_spec.attack_graph = ag
 
 def Run(benchmark_spec):
   """Collect Num_Paths Metrics for an attack graph
@@ -80,103 +88,13 @@ def Run(benchmark_spec):
   """
   results = []
 
-  def _RunTest():
+  metric = num_paths.num_paths_metric()
 
-    #####
-    ## genTransMatrix
-    ####
-    # inputDir = FLAGS.base_dir
-
-    tgraph= None
-    tmatrix= None
-    nodelist = None
-
-    # A = AttackGraph(inputDir=inputDir, scriptsDir=scriptsDir, opts=opts
-    if not benchmark_spec.attack_graph:
-      outputDir = vm_util.GetTempDir()
-      outfileName = os.path.splitext(FLAGS.secmet_ag_name)[0]  # 'input'
-      scriptsDir = data.ResourcePath('scripts')
-      # pathlib.Path(FLAGS.output_dir).mkdir(parents=True, exist_ok=True)
-
-      opts = dict()
-      opts['scriptsDir'] = scriptsDir
-      opts['outputDir'] = outputDir
-      opts['outfileName'] = outfileName
-      opts['PLOT_INTERMEDIATE_GRAPHS'] = FLAGS.secmet_plot_intermediate_graphs
-      matrix_file = vm_util.PrependTempDir(outfileName + '.csv')
-      opts['MatrixFile'] = matrix_file
-
-      if FLAGS.secmet_ag_name:
-        ag = attack_graph.AttackGraph(**opts)
-        ag.load_dot_file(data.ResourcePath(FLAGS.secmet_ag_name))
-        # ag.name = 'small_enterprise'
-        ag.load_score_dict(data.ResourcePath(FLAGS.secmet_score_dict ))
-        # ag.PLOT_INTERMEDIATE_GRAPHS = FLAGS.secmet_plot_intermediate_graphs
-
-        tgraph, tmatrix, nodelist = ag.getTransMatrix()
-
-        print(tmatrix.todense())
-
-        benchmark_spec.attack_graph = ag
-        benchmark_spec.transition_graph = tgraph
-        benchmark_spec.tmatrix = tmatrix
-        benchmark_spec.nodelist = nodelist
-      else:
-        inputDir = data.ResourcePath('attack_graphs')
-
-        # outputDir = vm_util.GetTempDir()
-        # outfileName = os.path.splitext(FLAGS.input_model_name)[0]  # 'input'
-        # scriptsDir = data.ResourcePath('')
-        # # pathlib.Path(FLAGS.output_dir).mkdir(parents=True, exist_ok=True)
-
-        # opts = dict()
-        # opts['scriptsDir'] = scriptsDir
-        opts['inputDir'] = inputDir
-        # opts['outputDir'] = outputDir
-        # opts['outfileName'] = outfileName
-        # opts['PLOT_INTERMEDIATE_GRAPHS'] = FLAGS.secmet_plot_intermediate_graphs
-        # matrix_file = vm_util.PrependTempDir(outfileName + '.csv')
-        # opts['MatrixFile'] = matrix_file
-
-        benchmark_spec.attack_graph = attack_graph.AttackGraph(**opts)
-
-    A = benchmark_spec.attack_graph
-    # A.name = outfileName
-    if FLAGS.secmet_plot_intermediate_graphs:
-      A.plot2(outfilename=A.name + '_001_orig.png')
-    # tgraph, tmatrix, nodelist = A.getTransMatrix()
-
-    # nodelist_pre_reduce = list(networkx.algorithms.dag.lexicographical_topological_sort(A))
-
-    # origin = list(A.getOriginnodesByAttackerLocated())[0]
-    # target = list(A.getTargetByNoEgressEdges())[0]
-    # all_paths_before = list(networkx.all_simple_paths(A,origin,target))
-    #
-    # nodelist_post_reduce = tgraph.getNodeList()
-    # all_paths_after = list(networkx.all_simple_paths(tgraph,nodelist_post_reduce[0],nodelist_post_reduce[-1]))
-
-    m = num_paths.num_paths_metric()
-    m.ag = benchmark_spec.attack_graph
-    m.tgraph = benchmark_spec.transition_graph
-    m.tmatrix = benchmark_spec.tmatrix
-    value, metadata = m.calculate()
-
-    # metadata = {# The meta data defining the environment
-    #     'cite_key': CITATION_SHORT,
-    #     'citation':         CITATION_FULL,
-    #     'attack_graph_name': A.name,
-    #     # 'attack_graph_original':   json.dumps(json_graph.node_link_data(A)),
-    #     # 'attack_graph_reduced': json.dumps(json_graph.node_link_data(tgraph)),
-    #     'all_paths_original': json.dumps(all_paths_before),
-    #     'all_paths_reduced': json.dumps(all_paths_after),
-    #     'num_paths_original': len(all_paths_before),
-    #     'num_paths_reduced': len(all_paths_after),
-    #     # 'transition_matrix':   json.dumps(tmatrix.todense().tolist()),
-    # }
-    return sample.Sample(m.METRIC_NAME, value, m.METRIC_UNIT, metadata)
-  results.append(_RunTest())
-  print(results)
+  metric.ag = benchmark_spec.attack_graph
+  value, metadata = metric.calculate()
+  results.append(sample.Sample(metric.METRIC_NAME, value, metric.METRIC_UNIT, metadata))
   return results
+
 
 
 

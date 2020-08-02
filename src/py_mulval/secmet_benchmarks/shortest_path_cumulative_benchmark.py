@@ -55,14 +55,14 @@ shortest_path_cumulative:
   description: Run shortest_attack_path metric
   flags:
     # secmet_plot_intermediate_graphs
-    # secmet_fix_cvss_score: 1
-    secmet_map_scores: 'cvss2time'
-    input_file: single_host_1.P
-    rule: local_exploit_rules.P
-    models_dir: /opt/projects/diss/py-mulval/data/models 
-    rules_dir: /opt/projects/diss/py-mulval/data/rules 
-    data_dir: /opt/projects/diss/py-mulval/data
-    secmet_ag_path: AttackGraph.dot
+    # # secmet_fix_cvss_score: 1
+    # secmet_map_scores: 'cvss2time'
+    # input_file: single_host_1.P
+    # rule: local_exploit_rules.P
+    # models_dir: /opt/projects/diss/py-mulval/data/models 
+    # rules_dir: /opt/projects/diss/py-mulval/data/rules 
+    # data_dir: /opt/projects/diss/py-mulval/data
+    # secmet_ag_path: AttackGraph.dot
   #   output_dir: /tmp/mulpy
   # vm_groups:
 """
@@ -73,6 +73,9 @@ def GetConfig(user_config):
 
 
 def Prepare(benchmark_spec):
+
+
+
   if not benchmark_spec.attack_graph:
     ag = bmutil.get_attack_graph()
     benchmark_spec.attack_graph = ag

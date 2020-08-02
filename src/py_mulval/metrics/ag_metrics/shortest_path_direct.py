@@ -38,7 +38,7 @@ class shortest_path_direct_metric(AGBasedSecMet):
 
     self.CheckPreReqs()
     A = self.ag
-    A.name = os.path.splitext(FLAGS.input_file)[0]
+    # A.name = os.path.splitext(FLAGS.input_file)[0]
     if FLAGS.secmet_plot_intermediate_graphs:
       A.plot2(outfilename=A.name + '_001_orig.png')
 
